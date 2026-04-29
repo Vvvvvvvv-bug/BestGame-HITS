@@ -1,11 +1,8 @@
 import Phaser from 'phaser';
+import { GameState } from './core/GameState';
+import { Building } from './buildings/Building';
+import { Drill } from './buildings/Drill';
 
-interface Building {
-  gridX: number;
-  gridY: number;
-  type: string;
-  sprite: Phaser.GameObjects.Rectangle;
-}
 
 export default class MainScene extends Phaser.Scene {
   private readonly CELL_SIZE = 32;
@@ -20,6 +17,8 @@ export default class MainScene extends Phaser.Scene {
 
   private cols = 0;
   private rows = 0;
+
+  public gameState: GameState = new GameState();
 
   constructor() {
     super({ key: 'MainScene' });
@@ -121,13 +120,7 @@ export default class MainScene extends Phaser.Scene {
     sprite.setOrigin(0, 0);
     sprite.setDepth(10);
 
-    const building: Building = {
-      gridX,
-      gridY,
-      type,
-      sprite,
-    };
-
+    
     const key = this.getGridKey(gridX, gridY);
     this.buildings.set(key, building);
 
