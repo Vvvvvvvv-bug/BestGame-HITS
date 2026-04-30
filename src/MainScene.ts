@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GameState } from './core/GameState';
 import { Building } from './buildings/Building';
 import { Drill } from './buildings/Drill';
+import { ResourcePanel } from './ui/ResourcePanel';
 
 
 export default class MainScene extends Phaser.Scene {
@@ -16,6 +17,8 @@ export default class MainScene extends Phaser.Scene {
   private cols = 0;
   private rows = 0;
 
+  private resourcePanel!: ResourcePanel;
+
   public gameState: GameState = new GameState();
 
   constructor() {
@@ -27,6 +30,7 @@ export default class MainScene extends Phaser.Scene {
     this.setupGrid();
     this.setupGhost();
     this.setupInput();
+    this.resourcePanel = new ResourcePanel(this);
   }
 
   private calculateGridDimensions(): void {
@@ -135,5 +139,7 @@ export default class MainScene extends Phaser.Scene {
     for(const building of this.buildings.values()){
       building.update(delta);
     }
+
+    this.resourcePanel.update(this.gameState.resources);
   }
 }
