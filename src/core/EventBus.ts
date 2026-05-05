@@ -1,5 +1,5 @@
 type EventMap = {
-  'resource-mined': { type: string; amount: number };
+  'resource-mined': { type: 'iron' | 'stone'; amount: number };
 };
 
 class EventBus {
