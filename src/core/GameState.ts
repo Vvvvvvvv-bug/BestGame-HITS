@@ -3,8 +3,8 @@ import { eventBus } from "./EventBus";
 
 export class GameState {
     public resources = {
-        iron: 0,
-        stone: 0
+        iron: 150,
+        stone: 150
     };
 
     constructor() {
