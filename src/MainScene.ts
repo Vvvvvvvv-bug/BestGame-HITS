@@ -7,12 +7,15 @@ import { createBuilding } from './buildings/BuildingFactory';
 import { WaveManager } from './core/WaveManager';
 import { WavePanel } from './ui/WavePanel';
 import { Enemy } from './enemies/Enemy';
-import { Zealot } from './enemies/Zealot';
+
 import { EnemySpawner } from './enemies/EnemySpawner';
 import { eventBus } from './core/EventBus';
 import { Player } from './player/Player';
 import { WeaponShop } from './ui/WeaponShop';
-import { WeaponType } from './player/Weapon';
+import type { WeaponType } from './player/Weapon';
+import { Bomb } from './buildings/Bomb';
+import { BombSelector } from './ui/BombSelector';
+import { BUILDING_CONFIGS, BOMB_CONFIG } from './core/BuildingConfigs';
 
 export default class MainScene extends Phaser.Scene {
   private readonly CELL_SIZE = 32;
@@ -21,6 +24,7 @@ export default class MainScene extends Phaser.Scene {
 
   private ghost!: Phaser.GameObjects.Rectangle;
   private buildings: Map<string, Building> = new Map();
+  private bombs: Map<string, Bomb> = new Map();
   private enemies: Set<Enemy> = new Set();
   private enemySpawner!: EnemySpawner;
   private player!: Player;
@@ -35,8 +39,10 @@ export default class MainScene extends Phaser.Scene {
   private resourcePanel!: ResourcePanel;
   private wavePanel!: WavePanel;
   private weaponShop!: WeaponShop;
+  private bombSelector!: BombSelector;
   public gameState: GameState = new GameState();
   private selectedType: string = 'drill';
+  private selectingBomb: boolean = false;
   private waveManager!: WaveManager;
   private currentPhase: string = 'gathering';
 
@@ -53,6 +59,7 @@ export default class MainScene extends Phaser.Scene {
     this.generateEnemySpritesheet();
     this.generatePlayerSpritesheet();
     this.generateWeaponSpritesheet();
+    this.generateBombSpritesheet();
   }
 
   private generateTilesetTexture(): void {
@@ -211,6 +218,28 @@ export default class MainScene extends Phaser.Scene {
     this.textures.get('weapons').add('pistol', 0, TILE * 2, 0, TILE, TILE);
   }
 
+  private generateBombSpritesheet(): void {
+    const TILE = this.CELL_SIZE;
+    const rt = this.add.renderTexture(0, 0, TILE, TILE);
+    const g = this.add.graphics();
+
+    // Бомба - красный круг с фитилем
+    g.clear();
+    g.lineStyle(2, 0x000000, 1);
+    g.fillStyle(0xFF0000);
+    g.fillCircle(TILE / 2, TILE / 2, TILE / 3);
+    g.fillStyle(0xFFFF00);
+    g.fillRect(TILE / 2 - 1, TILE / 2 - TILE / 3 - 4, 2, 4); // Фитиль
+    g.strokeCircle(TILE / 2, TILE / 2, TILE / 3);
+    rt.draw(g, 0, 0);
+
+    rt.saveTexture('bombs');
+    g.destroy();
+    rt.destroy();
+
+    this.textures.get('bombs').add('bomb', 0, 0, 0, TILE, TILE);
+  }
+
   create() {
     this.calculateGridDimensions();
     this.setupTilemap();
@@ -232,12 +261,24 @@ export default class MainScene extends Phaser.Scene {
       this.player.switchWeapon(weaponType);
     });
     
+    // Создаём селектор бомб
+    this.bombSelector = new BombSelector(this, this.gameState, () => {
+      this.selectingBomb = true;
+      this.selectedType = 'bomb';
+    });
+    
     new BuildingSelector(this, (type) => {
       this.selectedType = type;
+      this.selectingBomb = false;
     });
 
     // Подписываемся на события волны для запуска спавнинга
     eventBus.on('wave-update', (data) => {
+      if (data.phase === 'victory') {
+        this.showVictoryScreen();
+        return;
+      }
+
       if (data.phase === 'wave' && this.currentPhase !== 'wave') {
         // Волна началась
         this.enemySpawner.startWave(data.enemiesInWave, 60000);
@@ -247,6 +288,9 @@ export default class MainScene extends Phaser.Scene {
         this.enemySpawner.stopWave();
         this.currentPhase = data.phase;
       }
+
+      // Обновляем доступное оружие
+      this.weaponShop.setAvailableWeapons(data.waveNumber);
     });
   }
 
@@ -337,34 +381,79 @@ export default class MainScene extends Phaser.Scene {
       return;
     }
 
-    this.placeBuilding(gridX, gridY);
+    if (this.selectingBomb) {
+      this.placeBomb(gridX, gridY);
+    } else {
+      this.placeBuilding(gridX, gridY);
+    }
   }
 
   placeBuilding(gridX: number, gridY: number): void {
-  if (this.isOccupied(gridX, gridY)) return;
+    if (this.isOccupied(gridX, gridY)) return;
 
-  const tile = this.groundLayer.getTileAt(gridX, gridY);
-  let resourceToMine: 'iron' | 'stone' | undefined = undefined;
+    const tile = this.groundLayer.getTileAt(gridX, gridY);
+    let resourceToMine: 'iron' | 'stone' | undefined = undefined;
 
-  if (tile) {
-    if (tile.index === 1) resourceToMine = 'stone'; 
-    else if (tile.index === 2) resourceToMine = 'iron';
+    if (tile) {
+      if (tile.index === 1) resourceToMine = 'stone'; 
+      else if (tile.index === 2) resourceToMine = 'iron';
+    }
+
+    if (this.selectedType === 'drill' && !resourceToMine) {
+      return; 
+    }
+
+    // Проверяем стоимость
+    const config = BUILDING_CONFIGS[this.selectedType as keyof typeof BUILDING_CONFIGS];
+    if (config) {
+      const totalResources = this.gameState.resources.iron + this.gameState.resources.stone;
+      if (totalResources < config.cost) return;
+      
+      const ironCost = Math.min(config.cost, this.gameState.resources.iron);
+      const stoneCost = config.cost - ironCost;
+      this.gameState.resources.iron -= ironCost;
+      this.gameState.resources.stone -= stoneCost;
+    }
+
+    const worldX = gridX * this.CELL_SIZE + this.CELL_SIZE / 2;
+    const worldY = gridY * this.CELL_SIZE + this.CELL_SIZE / 2;
+
+    const building = createBuilding(this.selectedType, this, worldX, worldY, resourceToMine);
+    this.buildings.set(this.getGridKey(gridX, gridY), building);
+    this.ghost.setFillStyle(this.GHOST_COLOR_BLOCKED, 0.4);
   }
 
-  if (this.selectedType === 'drill' && !resourceToMine) {
-    return; 
+  placeBomb(gridX: number, gridY: number): void {
+    if (this.isOccupied(gridX, gridY)) return;
+
+    const worldX = gridX * this.CELL_SIZE + this.CELL_SIZE / 2;
+    const worldY = gridY * this.CELL_SIZE + this.CELL_SIZE / 2;
+
+    const bomb = new Bomb(this, worldX, worldY, (bomb) => {
+      // Наносим урон врагам в радиусе
+      const affected = bomb.getEnemiesInRadius(this.enemies);
+      for (const enemy of affected) {
+        if (enemy.takeDamage(BOMB_CONFIG.damage)) {
+          this.enemies.delete(enemy);
+          enemy.destroy();
+        }
+      }
+      // Удаляем бомбу из карты
+      for (const [key, b] of this.bombs.entries()) {
+        if (b === bomb) {
+          this.bombs.delete(key);
+          break;
+        }
+      }
+    });
+    this.bombs.set(this.getGridKey(gridX, gridY), bomb);
+    this.selectingBomb = false;
+    this.selectedType = 'drill'; // Возвращаемся к бурам
   }
-
-  const worldX = gridX * this.CELL_SIZE + 1;
-  const worldY = gridY * this.CELL_SIZE + 1;
-
-  const building = createBuilding(this.selectedType, this, worldX, worldY, resourceToMine);
-  this.buildings.set(this.getGridKey(gridX, gridY), building);
-  this.ghost.setFillStyle(this.GHOST_COLOR_BLOCKED, 0.4);
-}
 
   private isOccupied(gridX: number, gridY: number): boolean {
-    return this.buildings.has(this.getGridKey(gridX, gridY));
+    const key = this.getGridKey(gridX, gridY);
+    return this.buildings.has(key) || this.bombs.has(key);
   }
 
   private getGridKey(gridX: number, gridY: number): string {
@@ -382,6 +471,12 @@ export default class MainScene extends Phaser.Scene {
 
     this.player.update(delta);
     this.weaponShop.updateAffordability(this.gameState.resources.iron, this.gameState.resources.stone);
+    this.bombSelector.updateAffordability(this.gameState.resources.iron, this.gameState.resources.stone);
+
+    // Обновляем бомбы
+    for (const bomb of this.bombs.values()) {
+      bomb.update(delta);
+    }
 
     // Обновляем врагов и даём им цели
     const deadEnemies: Enemy[] = [];
@@ -403,12 +498,29 @@ export default class MainScene extends Phaser.Scene {
       }
       
       enemy.update(delta);
+      
+      // Проверяем, не умер ли враг
+      if (enemy.healthPoints <= 0) {
+        deadEnemies.push(enemy);
+      }
     }
 
     // Удаляем мертвых врагов
     for (const enemy of deadEnemies) {
       this.enemies.delete(enemy);
       enemy.destroy();
+    }
+    
+    // Удаляем уничтоженные здания
+    const destroyedBuildings: string[] = [];
+    for (const [key, building] of this.buildings.entries()) {
+      if (building.healthPoints <= 0) {
+        destroyedBuildings.push(key);
+        building.destroy();
+      }
+    }
+    for (const key of destroyedBuildings) {
+      this.buildings.delete(key);
     }
 
     this.resourcePanel.update(this.gameState.resources);
@@ -448,5 +560,35 @@ export default class MainScene extends Phaser.Scene {
     }
 
     return nearest;
+  }
+
+  private showVictoryScreen(): void {
+    this.enemySpawner.stopWave();
+    this.currentPhase = 'victory';
+
+    this.add.rectangle(
+      this.scale.width / 2, this.scale.height / 2,
+      this.scale.width, this.scale.height,
+      0x000000, 0.7
+    ).setDepth(1000);
+
+    const text = this.add.text(this.scale.width / 2, this.scale.height / 2, 'ПОБЕДА!', {
+      fontSize: '48px',
+      color: '#00ff00',
+      fontStyle: 'bold'
+    }).setOrigin(0.5).setDepth(1001);
+
+    this.add.text(this.scale.width / 2, this.scale.height / 2 + 60, `Все ${this.waveManager.getCurrentWave()} волн пройдены`, {
+      fontSize: '20px',
+      color: '#ffffff'
+    }).setOrigin(0.5).setDepth(1001);
+
+    this.tweens.add({
+      targets: text,
+      scale: 1.2,
+      duration: 500,
+      yoyo: true,
+      repeat: -1
+    });
   }
 }

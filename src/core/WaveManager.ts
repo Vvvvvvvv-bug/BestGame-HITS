@@ -2,6 +2,8 @@ import { eventBus } from './EventBus';
 
 export type GamePhase = 'gathering' | 'building' | 'wave' | 'boss' | 'gameover' | 'victory';
 
+export const MAX_WAVES = 6;
+
 export class WaveManager {
   private currentWave: number = 0;
   private currentPhase: GamePhase = 'gathering';
@@ -12,7 +14,7 @@ export class WaveManager {
   private waveDuration: number = 60000;      // 60 сек для волны
   
   private enemiesCount: number = 3; // Количество враго в первой волне
-  private enemyDamage: number = 10;
+  private maxWaves: number = MAX_WAVES;
   
   private baseWaveDuration: number = 60000;
   private waveMultiplier: number = 1.1; // На каждую волну время +10%
@@ -65,8 +67,12 @@ export class WaveManager {
         this.startPhase('wave');
         break;
       case 'wave':
-        // После волны обратно к сбору
-        this.startPhase('gathering');
+        // После волны проверяем, не последняя ли это была волна
+        if (this.currentWave >= this.maxWaves) {
+          this.startPhase('victory');
+        } else {
+          this.startPhase('gathering');
+        }
         break;
       case 'boss':
       case 'gameover':

@@ -1,4 +1,5 @@
-import { Weapon, WeaponType, WEAPON_CONFIGS } from './Weapon';
+import { Weapon, WEAPON_CONFIGS } from './Weapon';
+import type { WeaponType } from './Weapon';
 import { Enemy } from '../enemies/Enemy';
 
 export class Player {
@@ -28,7 +29,7 @@ export class Player {
   }
 
   canAffordWeapon(weaponType: WeaponType): boolean {
-    return WEAPON_CONFIGS[weaponType].cost;
+    return WEAPON_CONFIGS[weaponType].cost <= 0;
   }
 
   switchWeapon(weaponType: WeaponType): void {

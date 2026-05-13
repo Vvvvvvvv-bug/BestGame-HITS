@@ -1,5 +1,3 @@
-import { BUILDING_CONFIGS } from '../core/BuildingConfigs';
-import { eventBus } from '../core/EventBus';
 import { Enemy } from './Enemy';
 
 export class Zealot extends Enemy {
