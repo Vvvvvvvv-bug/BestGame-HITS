@@ -4,6 +4,10 @@ import { Building } from './buildings/Building';
 import { ResourcePanel } from './ui/ResourcePanel';
 import { BuildingSelector } from './ui/BuildingSelector';
 import { createBuilding } from './buildings/BuildingFactory';
+import { WaveManager } from './core/WaveManager';
+import { WavePanel } from './ui/WavePanel';
+import { Enemy } from './enemies/Enemy';
+import { Zealot } from './enemies/Zealot';
 
 export default class MainScene extends Phaser.Scene {
   private readonly CELL_SIZE = 32;
@@ -12,6 +16,7 @@ export default class MainScene extends Phaser.Scene {
 
   private ghost!: Phaser.GameObjects.Rectangle;
   private buildings: Map<string, Building> = new Map();
+  private enemies: Set<Enemy> = new Set();
 
   private map!: Phaser.Tilemaps.Tilemap;
   private tileset!: Phaser.Tilemaps.Tileset;
@@ -21,8 +26,10 @@ export default class MainScene extends Phaser.Scene {
   private rows = 0;
 
   private resourcePanel!: ResourcePanel;
+  private wavePanel!: WavePanel;
   public gameState: GameState = new GameState();
   private selectedType: string = 'drill';
+  private waveManager!: WaveManager;
 
   private readonly TILESET_KEY = 'tiles';
   private readonly TILESET_NAME = 'tiles';
@@ -34,6 +41,7 @@ export default class MainScene extends Phaser.Scene {
   preload() {
     this.generateTilesetTexture();
     this.generateBuildingSpritesheet();
+    this.generateEnemySpritesheet();
   }
 
   private generateTilesetTexture(): void {
@@ -104,12 +112,37 @@ export default class MainScene extends Phaser.Scene {
     this.textures.get('buildings').add('wall', 0, TILE, 0, TILE, TILE);
   }
 
+  private generateEnemySpritesheet(): void {
+    const TILE = this.CELL_SIZE;
+    const rt = this.add.renderTexture(0, 0, TILE, TILE);
+    const g = this.add.graphics();
+
+    // Зилот - красный враг
+    g.clear();
+    g.lineStyle(2, 0x000000, 1);
+    g.fillStyle(0xff3333);
+    g.fillCircle(TILE / 2, TILE / 2, TILE / 3);
+    g.fillStyle(0xffff00);
+    g.fillCircle(TILE / 2 - 4, TILE / 2 - 4, 2);
+    g.fillCircle(TILE / 2 + 4, TILE / 2 - 4, 2);
+    g.strokeCircle(TILE / 2, TILE / 2, TILE / 3);
+    rt.draw(g, 0, 0);
+
+    rt.saveTexture('enemies');
+    g.destroy();
+    rt.destroy();
+
+    this.textures.get('enemies').add('zealot', 0, 0, 0, TILE, TILE);
+  }
+
   create() {
     this.calculateGridDimensions();
     this.setupTilemap();
     this.setupGhost();
     this.setupInput();
     this.resourcePanel = new ResourcePanel(this);
+    this.wavePanel = new WavePanel(this);
+    this.waveManager = new WaveManager();
     new BuildingSelector(this, (type) => {
       this.selectedType = type;
     });
@@ -227,9 +260,17 @@ export default class MainScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
+    this.waveManager.update(delta);
+    this.wavePanel.updateProgress(this.waveManager.getPhaseProgress());
+
     for (const building of this.buildings.values()) {
       building.update(delta);
     }
+
+    for (const enemy of this.enemies) {
+      enemy.update(delta);
+    }
+
     this.resourcePanel.update(this.gameState.resources);
   }
 }

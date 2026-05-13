@@ -1,5 +1,11 @@
 type EventMap = {
   'resource-mined': { type: 'iron' | 'stone'; amount: number };
+  'wave-update': {
+    phase: 'gathering' | 'building' | 'wave' | 'boss' | 'gameover' | 'victory';
+    waveNumber: number;
+    timeLeft: number;
+    enemiesInWave: number;
+  };
 };
 
 class EventBus {
