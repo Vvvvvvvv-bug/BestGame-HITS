@@ -99,8 +99,8 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   private createPanel(): void {
-    const w = Math.min(620, this.scale.width - 40);
-    const h = Math.min(430, this.scale.height - 40);
+    const w = Math.min(680, this.scale.width - 40);
+    const h = Math.min(500, this.scale.height - 40);
 
     this.add
       .rectangle(this.centerX, this.centerY, w, h, 0x0c1626, 0.82)
@@ -114,7 +114,7 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   private createTexts(): void {
-    const titleSize = Math.max(54, Math.floor(this.scale.width * 0.072));
+    const titleSize = Math.min(50, Math.floor(this.scale.width * 0.06));
 
     this.title = this.add
       .text(this.centerX, this.centerY - 120, 'BEST GAME: HITS', {
@@ -148,11 +148,15 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   private createButtons(): void {
-    this.createButton(this.centerX, this.centerY + 26, 300, 64, 'НАЧАТЬ ИГРУ', () => {
+    this.createButton(this.centerX, this.centerY + 32, 340, 72, 'НАЧАТЬ ИГРУ', () => {
       this.scene.start('MainScene');
     });
 
-    this.createButton(this.centerX, this.centerY + 104, 300, 52, 'ВЫХОД', () => {
+    this.createButton(this.centerX, this.centerY + 118, 340, 72, 'НАСТРОЙКИ', () => {
+      console.log('Настройки открываются');
+    });
+
+    this.createButton(this.centerX, this.centerY + 204, 340, 72, 'ВЫХОД', () => {
       if (window.close) window.close();
     });
   }
