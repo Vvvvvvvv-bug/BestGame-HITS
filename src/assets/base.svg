@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="baseBody" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#223154"/>
+      <stop offset="1" stop-color="#0a1328"/>
+    </linearGradient>
+    <radialGradient id="baseCore" cx="50%" cy="45%" r="55%">
+      <stop offset="0" stop-color="#eafff8"/>
+      <stop offset="0.45" stop-color="#42f5a7"/>
+      <stop offset="1" stop-color="#157a64"/>
+    </radialGradient>
+  </defs>
+  <!-- корпус 2x2 -->
+  <rect x="4" y="4" width="56" height="56" rx="11" fill="url(#baseBody)" stroke="#7bdff2" stroke-width="3"/>
+  <!-- внутренняя рамка -->
+  <rect x="11" y="11" width="42" height="42" rx="8" fill="none" stroke="#31506e" stroke-width="2"/>
+  <!-- угловые узлы -->
+  <circle cx="13" cy="13" r="2.6" fill="#9edfff"/>
+  <circle cx="51" cy="13" r="2.6" fill="#9edfff"/>
+  <circle cx="13" cy="51" r="2.6" fill="#9edfff"/>
+  <circle cx="51" cy="51" r="2.6" fill="#9edfff"/>
+  <!-- энерго-кондуиты к ядру -->
+  <path d="M32 20V12M32 52V44M20 32H12M52 32H44" stroke="#4cc9f0" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- реактор-ядро -->
+  <circle cx="32" cy="32" r="13" fill="#0b1830" stroke="#42f5a7" stroke-width="2"/>
+  <circle cx="32" cy="32" r="8.5" fill="url(#baseCore)"/>
+  <circle cx="32" cy="32" r="3" fill="#ffffff" opacity="0.9"/>
+</svg>

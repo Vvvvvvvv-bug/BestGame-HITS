@@ -23,8 +23,8 @@ export class Drill extends Building {
 
       this.sprite.scene.tweens.add({
         targets: this.sprite,
-        scaleX: 1.1,
-        scaleY: 1.1,
+        scaleX: this.baseScale * 1.1,
+        scaleY: this.baseScale * 1.1,
         duration: 80,
         yoyo: true,
         ease: 'Sine.easeOut',

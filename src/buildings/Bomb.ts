@@ -11,6 +11,7 @@ export class Bomb implements Attackable {
   canDetonate: boolean = true;
   healthPoints: number = 1;
   private onDetonate: (bomb: Bomb) => void;
+  private baseScale: number;
 
   constructor(scene: Phaser.Scene, x: number, y: number, onDetonate: (bomb: Bomb) => void) {
     this.scene = scene;
@@ -21,6 +22,8 @@ export class Bomb implements Attackable {
     this.sprite = scene.add.sprite(x, y, 'bomb');
     this.sprite.setOrigin(0.5, 0.5);
     this.sprite.setDepth(15);
+    this.sprite.setDisplaySize(30, 30); // SVG 96px -> 30px (под клетку)
+    this.baseScale = this.sprite.scaleX;
     this.sprite.setInteractive({ useHandCursor: true });
 
     this.sprite.on('pointerdown', () => {
@@ -40,7 +43,7 @@ export class Bomb implements Attackable {
     // Визуальный эффект
     this.scene.tweens.add({
       targets: this.sprite,
-      scale: 1.5,
+      scale: this.baseScale * 1.5,
       alpha: 0,
       duration: 300,
       onComplete: () => {

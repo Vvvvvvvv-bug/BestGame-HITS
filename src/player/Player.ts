@@ -5,7 +5,7 @@ import type { Attackable } from '../core/Attackable';
 
 export class Player implements Attackable {
   sprite: Phaser.GameObjects.Sprite;
-  private base: Phaser.GameObjects.Rectangle;
+  private baseScale!: number;
   healthPoints: number = 100;
   maxHealthPoints: number = 100;
   weapon: Weapon;
@@ -15,14 +15,11 @@ export class Player implements Attackable {
     this.scene = scene;
     this.weapon = new Weapon('hand');
 
-    this.base = scene.add.rectangle(x, y, 64, 64, 0x20344f, 0.28)
-      .setStrokeStyle(2, 0x8bd7ff, 0.8)
-      .setDepth(29);
-
-    this.sprite = scene.add.sprite(x, y, 'player');
+    this.sprite = scene.add.sprite(x, y, 'base');
     this.sprite.setOrigin(0.5, 0.5);
     this.sprite.setDepth(30);
-    this.sprite.setDisplaySize(64, 64);
+    this.sprite.setDisplaySize(64, 64); // 2x2 клетки по 32px
+    this.baseScale = this.sprite.scaleX;
   }
 
   update(delta: number): void {
@@ -64,8 +61,8 @@ export class Player implements Attackable {
       // Визуальный эффект атаки
       this.scene.tweens.add({
         targets: this.sprite,
-        scaleX: 1.8,
-        scaleY: 1.2,
+        scaleX: this.baseScale * 1.4,
+        scaleY: this.baseScale * 0.9,
         duration: 100,
         yoyo: true
       });
@@ -76,7 +73,6 @@ export class Player implements Attackable {
   }
 
   destroy(): void {
-    this.base.destroy();
     this.sprite.destroy();
   }
 }

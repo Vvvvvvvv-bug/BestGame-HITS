@@ -15,6 +15,7 @@ export abstract class Enemy implements Attackable {
   protected attackTarget: Attackable | null = null;
   protected attackTimer: number = 0;
   protected attackCooldown: number = 1000; // атака раз в 1 сек
+  protected baseScale: number;             // масштаб после setDisplaySize — для относительных анимаций
 
   constructor(
     scene: Phaser.Scene,
@@ -36,6 +37,8 @@ export abstract class Enemy implements Attackable {
     this.sprite = scene.add.sprite(x, y, frameKey);
     this.sprite.setOrigin(0.5, 0.5);
     this.sprite.setDepth(20);
+    this.sprite.setDisplaySize(40, 40); // SVG 88px -> 40px (чуть крупнее клетки 32px)
+    this.baseScale = this.sprite.scaleX;
   }
 
   setTarget(x: number, y: number): void {
@@ -92,8 +95,8 @@ export abstract class Enemy implements Attackable {
       // Визуальный эффект атаки
       this.sprite.scene.tweens.add({
         targets: this.sprite,
-        scaleX: 1.15,
-        scaleY: 1.15,
+        scaleX: this.baseScale * 1.15,
+        scaleY: this.baseScale * 1.15,
         duration: 80,
         yoyo: true
       });

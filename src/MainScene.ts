@@ -44,6 +44,14 @@ export default class MainScene extends Phaser.Scene {
   private cols = 0;
   private rows = 0;
 
+  // --- RTS-камера ---
+  private uiCamera!: Phaser.Cameras.Scene2D.Camera; // отдельная камера для HUD: не скроллится
+  private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
+  private wasd!: Record<string, Phaser.Input.Keyboard.Key>;
+  private readonly CAMERA_SCROLL_SPEED = 0.85; // пикселей на мс
+  private readonly EDGE_SCROLL_MARGIN = 28;     // зона у края экрана для edge-scroll
+  private hasPointerMoved = false;              // защита от auto-scroll до первого движения мыши
+
   // UI компоненты
   private resourcePanel!: ResourcePanel;
   private wavePanel!: WavePanel;
@@ -67,21 +75,23 @@ export default class MainScene extends Phaser.Scene {
 
   preload() {
     this.load.image('hero', 'src/assets/hero.png');
-    this.load.svg('player', 'src/assets/player.svg', { width: 64, height: 64 });
-    this.load.svg('drill', 'src/assets/drill.svg', { width: 48, height: 48 });
-    this.load.svg('wall', 'src/assets/wall.svg', { width: 48, height: 48 });
-    this.load.svg('bomb', 'src/assets/bomb.svg', { width: 48, height: 48 });
-    this.load.svg('enemy', 'src/assets/enemy.svg', { width: 44, height: 44 });
-    this.load.svg('turret-1', 'src/assets/turret-1.svg', { width: 48, height: 48 });
-    this.load.svg('turret-2', 'src/assets/turret-2.svg', { width: 48, height: 48 });
-    this.load.svg('turret-3', 'src/assets/turret-3.svg', { width: 48, height: 48 });
-    this.load.svg('turret-4', 'src/assets/turret-4.svg', { width: 48, height: 48 });
-    this.load.svg('turret-5', 'src/assets/turret-5.svg', { width: 48, height: 48 });
-    this.load.svg(this.TILESET_KEY, 'src/assets/tileset.svg', { width: 96, height: 32 });
-    
-    this.load.svg('tile_empty', 'src/assets/tile-empty.svg', { width: 32, height: 32 });
-    this.load.svg('tile_iron', 'src/assets/tile-iron.svg', { width: 32, height: 32 });
-    this.load.svg('tile_stone', 'src/assets/tile-stone.svg', { width: 32, height: 32 });
+    this.load.svg('base', 'src/assets/base.svg', { width: 192, height: 192 });
+    this.load.svg('drill', 'src/assets/drill.svg', { width: 96, height: 96 });
+    this.load.svg('wall', 'src/assets/wall.svg', { width: 96, height: 96 });
+    this.load.svg('bomb', 'src/assets/bomb.svg', { width: 96, height: 96 });
+    this.load.svg('enemy', 'src/assets/enemy.svg', { width: 88, height: 88 });
+    this.load.svg('turret-1', 'src/assets/turret-1.svg', { width: 96, height: 96 });
+    this.load.svg('turret-2', 'src/assets/turret-2.svg', { width: 96, height: 96 });
+    this.load.svg('turret-3', 'src/assets/turret-3.svg', { width: 96, height: 96 });
+    this.load.svg('turret-4', 'src/assets/turret-4.svg', { width: 96, height: 96 });
+    this.load.svg('turret-5', 'src/assets/turret-5.svg', { width: 96, height: 96 });
+    // 3 тайла по CELL_SIZE: растеризуем SVG ровно в размер сетки, чтобы addTilesetImage
+    // (нарезка 32×32) попадала в целые тайлы, а не в их углы (иначе камень обрезается).
+    this.load.svg(this.TILESET_KEY, 'src/assets/tileset.svg', { width: this.CELL_SIZE * 3, height: this.CELL_SIZE });
+
+    this.load.svg('tile_empty', 'src/assets/tile-empty.svg', { width: 64, height: 64 });
+    this.load.svg('tile_iron', 'src/assets/tile-iron.svg', { width: 64, height: 64 });
+    this.load.svg('tile_stone', 'src/assets/tile-stone.svg', { width: 64, height: 64 });
   }
 
   create() {
@@ -96,6 +106,7 @@ export default class MainScene extends Phaser.Scene {
     const centerY = this.getPlayerCenterY();
     this.player = new Player(this, centerX, centerY);
     this.setupPlayerHealthBar();
+    this.setupCamera();
     
     this.buildingManager = new BuildingManager();
     this.combatManager = new CombatManager();
@@ -141,13 +152,112 @@ export default class MainScene extends Phaser.Scene {
       eventBus.off('wave-update', this.waveUpdateHandler);
       this.input.off('pointermove', this.handlePointerMove, this);
       this.input.off('pointerdown', this.handlePointerDown, this);
+      this.events.off(Phaser.Scenes.Events.ADDED_TO_SCENE, this.onObjectAdded);
+      this.scale.off('resize', this.onResize);
     });
+
+    // Должно идти последним: все HUD-объекты уже созданы.
+    this.setupCameraLayers();
+  }
+
+  // === RTS-камера =========================================================
+
+  private setupCamera(): void {
+    const cam = this.cameras.main;
+    // Мир = левая панель + сетка + правая панель по ширине; высота = сетка.
+    const worldWidth = this.LEFT_PANEL_WIDTH + this.cols * this.CELL_SIZE + this.RIGHT_PANEL_WIDTH;
+    const worldHeight = this.rows * this.CELL_SIZE;
+    cam.setBounds(0, 0, worldWidth, worldHeight); // клампит скролл по краям карты
+    cam.centerOn(this.getPlayerCenterX(), this.getPlayerCenterY());
+
+    // Вторая камера для HUD: НЕ скроллится. Ввод по ней мапится 1:1 в экран,
+    // поэтому клики/ховеры меню больше не «уезжают» вместе с миром.
+    this.uiCamera = this.cameras.add(0, 0, this.scale.width, this.scale.height);
+    this.scale.on('resize', this.onResize);
+
+    this.cursors = this.input.keyboard!.createCursorKeys();
+    this.wasd = this.input.keyboard!.addKeys('W,A,S,D') as Record<string, Phaser.Input.Keyboard.Key>;
+  }
+
+  /**
+   * Раскидывает объекты по камерам: мир рисует только main, HUD — только uiCamera.
+   * Порог по depth (UI >= UI_DEPTH-2). Динамика (враги/здания/снаряды) создаётся после
+   * create() — она вся «мир», прячем её с uiCamera через событие ADDED_TO_SCENE.
+   */
+  private setupCameraLayers(): void {
+    const uiThreshold = UI_DEPTH - 2;
+    const uiList: Phaser.GameObjects.GameObject[] = [];
+    const worldList: Phaser.GameObjects.GameObject[] = [];
+    for (const obj of this.children.list) {
+      const depth = (obj as { depth?: number }).depth ?? 0;
+      (depth >= uiThreshold ? uiList : worldList).push(obj);
+    }
+    this.cameras.main.ignore(uiList);
+    this.uiCamera.ignore(worldList);
+    this.events.on(Phaser.Scenes.Events.ADDED_TO_SCENE, this.onObjectAdded);
+  }
+
+  private onObjectAdded = (go: Phaser.GameObjects.GameObject): void => {
+    this.uiCamera?.ignore(go);
+  };
+
+  private onResize = (size: Phaser.Structs.Size): void => {
+    this.uiCamera?.setSize(size.width, size.height);
+  };
+
+  private updateCamera(delta: number): void {
+    const cam = this.cameras.main;
+    const speed = this.CAMERA_SCROLL_SPEED * delta;
+    let dx = 0;
+    let dy = 0;
+
+    // Клавиатура: стрелки + WASD
+    if (this.cursors.left.isDown || this.wasd.A.isDown) dx -= speed;
+    if (this.cursors.right.isDown || this.wasd.D.isDown) dx += speed;
+    if (this.cursors.up.isDown || this.wasd.W.isDown) dy -= speed;
+    if (this.cursors.down.isDown || this.wasd.S.isDown) dy += speed;
+
+    // Edge-scroll: мышь у края экрана (только после первого движения мыши)
+    if (this.hasPointerMoved) {
+      const p = this.input.activePointer;
+      const m = this.EDGE_SCROLL_MARGIN;
+      if (p.x <= m) dx -= speed;
+      else if (p.x >= this.scale.width - m) dx += speed;
+      if (p.y <= m) dy -= speed;
+      else if (p.y >= this.scale.height - m) dy += speed;
+    }
+
+    if (dx !== 0 || dy !== 0) {
+      cam.scrollX += dx;
+      cam.scrollY += dy;
+    }
+  }
+
+  /** True, если курсор над боковой панелью (там нельзя строить/целиться сквозь HUD). */
+  private isPointerOverPanel(pointer: Phaser.Input.Pointer): boolean {
+    return pointer.x < this.LEFT_PANEL_WIDTH || pointer.x > this.scale.width - this.RIGHT_PANEL_WIDTH;
+  }
+
+  /**
+   * Экранные координаты курсора -> клетка сетки. Считаем через main-камеру явно
+   * (pointer.worldX ненадёжен при двух камерах — его может выставить uiCamera).
+   */
+  private pointerToGrid(pointer: Phaser.Input.Pointer): { gridX: number; gridY: number } {
+    const world = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+    return {
+      gridX: this.getGridXFromWorld(world.x),
+      gridY: Math.floor(world.y / this.CELL_SIZE),
+    };
   }
 
   private calculateGridDimensions(): void {
     const { width, height } = this.scale;
-    this.cols = Math.floor((width - this.LEFT_PANEL_WIDTH - this.RIGHT_PANEL_WIDTH) / this.CELL_SIZE);
-    this.rows = Math.floor(height / this.CELL_SIZE);
+    const visibleCols = Math.floor((width - this.LEFT_PANEL_WIDTH - this.RIGHT_PANEL_WIDTH) / this.CELL_SIZE);
+    const visibleRows = Math.floor(height / this.CELL_SIZE);
+    // Карта заведомо больше видимой области — это и даёт простор для RTS-скролла.
+    // Берём максимум из «видимое +N клеток» и «видимое ×1.4», чтобы скролл был на любом мониторе.
+    this.cols = Math.max(visibleCols + 16, Math.round(visibleCols * 1.4));
+    this.rows = Math.max(visibleRows + 10, Math.round(visibleRows * 1.4));
   }
 
   private setupSidebar(): void {
@@ -163,7 +273,9 @@ export default class MainScene extends Phaser.Scene {
     this.add.rectangle(this.LEFT_PANEL_WIDTH, this.scale.height / 2, 2, this.scale.height, UI_COLORS.borderMuted, 1)
       .setDepth(UI_DEPTH - 1);
 
-    const x = this.getGridOriginX() + this.cols * this.CELL_SIZE;
+    // Правая панель — по краю ЭКРАНА (раньше считалась от ширины сетки, и после увеличения
+    // карты уезжала за экран). UI живёт на фиксированной uiCamera, поэтому экранные = её координаты.
+    const x = this.scale.width - this.RIGHT_PANEL_WIDTH;
     this.add.rectangle(
       x + this.RIGHT_PANEL_WIDTH / 2,
       this.scale.height / 2,
@@ -271,8 +383,22 @@ export default class MainScene extends Phaser.Scene {
   }
 
   private handlePointerMove(pointer: Phaser.Input.Pointer): void {
-    const gridX = this.getGridXFromWorld(pointer.x);
-    const gridY = Math.floor(pointer.y / this.CELL_SIZE);
+    this.hasPointerMoved = true;
+
+    // Перетаскивание карты средней кнопкой мыши (drag-pan, как в RTS).
+    if (pointer.middleButtonDown()) {
+      this.cameras.main.scrollX -= pointer.x - pointer.prevPosition.x;
+      this.cameras.main.scrollY -= pointer.y - pointer.prevPosition.y;
+      this.ghost.setVisible(false);
+      return;
+    }
+
+    if (this.isPointerOverPanel(pointer)) {
+      this.ghost.setVisible(false);
+      return;
+    }
+
+    const { gridX, gridY } = this.pointerToGrid(pointer);
 
     if (gridX < 0 || gridX >= this.cols || gridY < 0 || gridY >= this.rows) {
       this.ghost.setVisible(false);
@@ -285,10 +411,10 @@ export default class MainScene extends Phaser.Scene {
   }
 
   private handlePointerDown(pointer: Phaser.Input.Pointer): void {
-    if (pointer.button !== 0) return;
+    if (pointer.button !== 0) return;        // только ЛКМ (средняя — для drag-pan)
+    if (this.isPointerOverPanel(pointer)) return; // клики по HUD не строят сквозь панель
 
-    const gridX = this.getGridXFromWorld(pointer.x);
-    const gridY = Math.floor(pointer.y / this.CELL_SIZE);
+    const { gridX, gridY } = this.pointerToGrid(pointer);
 
     if (gridX < 0 || gridX >= this.cols || gridY < 0 || gridY >= this.rows) {
       this.turretSelector?.clearSelection();
@@ -435,6 +561,8 @@ export default class MainScene extends Phaser.Scene {
   update(_time: number, delta: number): void {
     if (this.victoryShown || this.gameOverShown) return;
 
+    this.updateCamera(delta);
+
     this.waveManager.update(delta);
     this.wavePanel.updateProgress(this.waveManager.getPhaseProgress());
     this.enemySpawner.update(delta);
@@ -499,18 +627,20 @@ export default class MainScene extends Phaser.Scene {
     this.enemySpawner.stopWave();
     this.currentPhase = 'victory';
 
-    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x000000, 0.7).setDepth(1000);
+    // Оверлеи создаются после create() => uiCamera их игнорит, рисует только main (скроллится).
+    // setScrollFactor(0) держит их по центру экрана независимо от позиции камеры.
+    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x000000, 0.7).setDepth(1000).setScrollFactor(0);
 
     const textObj = this.add.text(this.scale.width / 2, this.scale.height / 2, 'ПОБЕДА!', {
       fontSize: '48px',
       color: '#00ff00',
       fontStyle: 'bold'
-    }).setOrigin(0.5).setDepth(1001);
+    }).setOrigin(0.5).setDepth(1001).setScrollFactor(0);
 
     this.add.text(this.scale.width / 2, this.scale.height / 2 + 60, `Все ${this.waveManager.getCurrentWave()} волн пройдены`, {
       fontSize: '20px',
       color: '#ffffff'
-    }).setOrigin(0.5).setDepth(1001);
+    }).setOrigin(0.5).setDepth(1001).setScrollFactor(0);
 
     this.tweens.add({
       targets: textObj,
@@ -518,6 +648,16 @@ export default class MainScene extends Phaser.Scene {
       duration: 300,
       yoyo: true,
       repeat: -1
+    });
+
+    this.add.text(this.scale.width / 2, this.scale.height / 2 + 120, 'Нажмите ЛКМ для меню', {
+      fontSize: '16px',
+      color: '#aabbcc',
+      fontFamily: '"Inter", "Segoe UI", Arial, sans-serif',
+    }).setOrigin(0.5).setDepth(1001).setScrollFactor(0);
+
+    this.input.once('pointerdown', () => {
+      this.scene.start('MenuScene');
     });
   }
 
@@ -529,11 +669,21 @@ export default class MainScene extends Phaser.Scene {
     this.waveManager.setGameOver();
     this.currentPhase = 'gameover';
 
-    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x000000, 0.72).setDepth(1000);
+    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x000000, 0.72).setDepth(1000).setScrollFactor(0);
     this.add.text(this.scale.width / 2, this.scale.height / 2, 'ПОРАЖЕНИЕ', {
       fontSize: '46px',
       color: '#ff6b7d',
       fontStyle: 'bold'
-    }).setOrigin(0.5).setDepth(1001);
+    }).setOrigin(0.5).setDepth(1001).setScrollFactor(0);
+
+    this.add.text(this.scale.width / 2, this.scale.height / 2 + 80, 'Нажмите ЛКМ для меню', {
+      fontSize: '16px',
+      color: '#aabbcc',
+      fontFamily: '"Inter", "Segoe UI", Arial, sans-serif',
+    }).setOrigin(0.5).setDepth(1001).setScrollFactor(0);
+
+    this.input.once('pointerdown', () => {
+      this.scene.start('MenuScene');
+    });
   }
 }
