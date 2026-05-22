@@ -25,6 +25,16 @@ class EventBus {
     this.listeners[event]!.push(callback);
   }
 
+  off<K extends keyof EventMap>(
+    event: K,
+    callback: (payload: EventMap[K]) => void
+  ): void {
+    const callbacks = this.listeners[event];
+    if (callbacks) {
+      this.listeners[event] = callbacks.filter((cb) => cb !== callback) as typeof callbacks;
+    }
+  }
+
   emit<K extends keyof EventMap>(event: K, payload: EventMap[K]): void {
     const callbacks = this.listeners[event];
     if (callbacks) {

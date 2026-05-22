@@ -34,8 +34,8 @@ export class Player implements Attackable {
     return this.healthPoints <= 0;
   }
 
-  canAffordWeapon(weaponType: WeaponType): boolean {
-    return WEAPON_CONFIGS[weaponType].cost <= 0;
+  canAffordWeapon(weaponType: WeaponType, availableIron: number): boolean {
+    return WEAPON_CONFIGS[weaponType].cost <= availableIron;
   }
 
   switchWeapon(weaponType: WeaponType): void {

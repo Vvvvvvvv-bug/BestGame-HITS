@@ -36,6 +36,7 @@ export default class MainScene extends Phaser.Scene {
   private playerHealthText!: Phaser.GameObjects.Text;
   private gameOverShown: boolean = false;
   private victoryShown: boolean = false;
+  private waveUpdateHandler!: (data: { phase: string; enemiesInWave: number; waveNumber: number; waveDuration: number }) => void;
 
   private map!: Phaser.Tilemaps.Tilemap;
   private tileset!: Phaser.Tilemaps.Tileset;
@@ -118,7 +119,7 @@ export default class MainScene extends Phaser.Scene {
       this.selectingBomb = false;
     });
 
-    eventBus.on('wave-update', (data: { phase: string; enemiesInWave: number; waveNumber: number; waveDuration: number }) => {
+    this.waveUpdateHandler = (data) => {
       if (data.phase === 'victory') {
         if (!this.victoryShown) {
           this.showVictoryScreen();
@@ -134,6 +135,13 @@ export default class MainScene extends Phaser.Scene {
         this.enemySpawner.stopWave();
         this.currentPhase = data.phase;
       }
+    };
+    eventBus.on('wave-update', this.waveUpdateHandler);
+
+    this.events.on('shutdown', () => {
+      eventBus.off('wave-update', this.waveUpdateHandler);
+      this.input.off('pointermove', this.handlePointerMove, this);
+      this.input.off('pointerdown', this.handlePointerDown, this);
     });
   }
 
@@ -425,6 +433,8 @@ export default class MainScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
+    if (this.victoryShown || this.gameOverShown) return;
+
     this.waveManager.update(delta);
     this.wavePanel.updateProgress(this.waveManager.getPhaseProgress());
     this.enemySpawner.update(delta);
