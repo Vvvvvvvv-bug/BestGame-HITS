@@ -5,6 +5,9 @@ import type { ResourceCost } from "./BuildingConfigs";
 
 export class GameState {
     public resources = {
+        iron: 1200,
+        stone: 1000,
+        gradePoint: 0
         iron: 2200,
         stone: 1800
     };
@@ -88,4 +91,3 @@ export class GameState {
         return true;
     }
 }
-

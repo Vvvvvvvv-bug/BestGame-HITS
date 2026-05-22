@@ -8,17 +8,30 @@ export class CombatManager {
     delta: number,
     enemies: Set<Enemy>,
     targets: Iterable<Attackable>,
-    player: Player
+    player: Player,
+    lureTargets: Iterable<Attackable & { lureRadius: number }> = []
   ): Enemy[] {
     const deadEnemies: Enemy[] = [];
     const targetArray = Array.from(targets).filter((t) => t.healthPoints > 0);
+    const lureTargetArray = Array.from(lureTargets).filter((t) => t.healthPoints > 0);
+
+    for (const enemy of enemies) {
+      const currentTarget = enemy.getAttackTarget();
+      const lureTarget = this.findNearestLureTarget(enemy, lureTargetArray);
+
+      if (lureTarget && currentTarget !== lureTarget) {
+        enemy.setTarget(lureTarget.sprite.x, lureTarget.sprite.y);
+        enemy.setAttackTarget(lureTarget);
+      } else if (currentTarget && lureTargetArray.includes(currentTarget as Attackable & { lureRadius: number }) && currentTarget !== lureTarget) {
+        enemy.clearTarget();
+      }
     const collisionTargets = player.healthPoints > 0 ? [...targetArray, player] : targetArray;
 
     for (const enemy of enemies) {
       enemy.setCollisionTargets(collisionTargets);
 
       if (enemy.needsTarget()) {
-        const target = this.findBestTarget(enemy, targetArray, player);
+        const target = this.findBestTarget(enemy, targetArray, player, lureTargetArray);
         if (target) {
           if (target === player) {
             enemy.setTarget(player.sprite.x, player.sprite.y);
@@ -41,8 +54,11 @@ export class CombatManager {
   private findBestTarget(
     enemy: Enemy,
     targets: Attackable[],
-    player: Player
+    player: Player,
+    lureTargets: Array<Attackable & { lureRadius: number }>
   ): Attackable | null {
+    const lureTarget = this.findNearestLureTarget(enemy, lureTargets);
+    if (lureTarget) return lureTarget;
     const aliveTargets = targets.filter((t) => t.healthPoints > 0);
     const blockerToBase = this.findBlockerOnPath(enemy, player, aliveTargets);
 
@@ -63,6 +79,27 @@ export class CombatManager {
         target.sprite.x, target.sprite.y
       );
       if (distance < minDistance) {
+        minDistance = distance;
+        bestTarget = target;
+      }
+    }
+
+    return bestTarget;
+  }
+
+  private findNearestLureTarget(
+    enemy: Enemy,
+    lureTargets: Array<Attackable & { lureRadius: number }>
+  ): Attackable | null {
+    let bestTarget: Attackable | null = null;
+    let minDistance = Infinity;
+
+    for (const target of lureTargets) {
+      const distance = this.getDistance(
+        enemy.sprite.x, enemy.sprite.y,
+        target.sprite.x, target.sprite.y
+      );
+      if (distance <= target.lureRadius && distance < minDistance) {
         minDistance = distance;
         bestTarget = target;
       }

@@ -58,6 +58,14 @@ export abstract class Enemy implements Attackable {
     this.attackTarget = target;
   }
 
+  getAttackTarget(): Attackable | null {
+    return this.attackTarget;
+  }
+
+  clearTarget(): void {
+    this.targetX = null;
+    this.targetY = null;
+    this.attackTarget = null;
   setCollisionTargets(targets: Attackable[]): void {
     this.collisionTargets = targets;
   }

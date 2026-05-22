@@ -1,5 +1,5 @@
 type EventMap = {
-  'resource-mined': { type: 'iron' | 'stone'; amount: number };
+  'resource-mined': { type: 'iron' | 'stone' | 'gradePoint'; amount: number };
   'wave-update': {
     phase: 'gathering' | 'building' | 'wave' | 'boss' | 'gameover' | 'victory';
     waveNumber: number;
