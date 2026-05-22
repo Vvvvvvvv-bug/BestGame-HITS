@@ -100,6 +100,11 @@ export abstract class Enemy implements Attackable {
     return Phaser.Math.Clamp(this.freezeChargeMs / 3000, 0, 1);
   }
 
+  /** Сила заморозки 0..1 — для приоритета прицеливания турелей. */
+  public get freezeStrength(): number {
+    return this.getFreezeStrength();
+  }
+
   protected getEffectiveSpeed(): number {
     const freezeSlow = 0.6 * this.getFreezeStrength();
     return this.speed * (1 - freezeSlow);
@@ -195,7 +200,7 @@ export abstract class Enemy implements Attackable {
   takeDamage(amount: number): boolean {
     if (this.isDead) return false;
 
-    const bonus = 1 + this.getFreezeStrength() * 0.3;
+    const bonus = 1 + this.getFreezeStrength() * 0.2; // крио: уязвимость +20% при полной заморозке
     this.healthPoints -= Math.round(amount * bonus);
 
     if (this.healthPoints > 0) {

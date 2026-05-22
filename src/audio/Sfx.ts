@@ -73,6 +73,63 @@ function sweep(
   osc.stop(now + durationMs / 1000 + 0.02);
 }
 
+export interface CryoBeamSound {
+  setActive(active: boolean): void;
+  destroy(): void;
+}
+
+/**
+ * Постоянный «бззз» крио-луча: низкая пила + квадрат-гармоника играют непрерывно,
+ * громкость гейтится setActive (плавный фейд, без щелчков). Один на турель.
+ */
+export function createCryoBeam(scene: Phaser.Scene): CryoBeamSound {
+  const context = getContext(scene);
+  if (!context) {
+    return { setActive() {}, destroy() {} };
+  }
+
+  const osc = context.createOscillator();
+  const harm = context.createOscillator();
+  const filter = context.createBiquadFilter();
+  const gain = context.createGain();
+  // Мягкий низкий гул вместо резкой пилы: синус + тихая треугольная гармоника,
+  // через lowpass, чтобы срезать высокие «царапающие» частоты.
+  osc.type = 'sine';
+  osc.frequency.value = 96;
+  harm.type = 'triangle';
+  harm.frequency.value = 144; // лёгкая расстройка для живости, но без резкости
+  filter.type = 'lowpass';
+  filter.frequency.value = 380;
+  gain.gain.value = 0.0001;
+  osc.connect(filter);
+  harm.connect(filter);
+  filter.connect(gain);
+  gain.connect(context.destination);
+  osc.start();
+  harm.start();
+
+  let active = false;
+  return {
+    setActive(a: boolean) {
+      if (a === active) return;
+      active = a;
+      const now = context.currentTime;
+      gain.gain.cancelScheduledValues(now);
+      gain.gain.setValueAtTime(Math.max(0.0001, gain.gain.value), now);
+      gain.gain.exponentialRampToValueAtTime(a ? 0.01 : 0.0001, now + 0.12);
+    },
+    destroy() {
+      try {
+        osc.stop();
+        harm.stop();
+      } catch {
+        /* уже остановлены */
+      }
+      gain.disconnect();
+    },
+  };
+}
+
 export function playSfx(scene: Phaser.Scene, type: SfxType): void {
   switch (type) {
     case 'ui-click':

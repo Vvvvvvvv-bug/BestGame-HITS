@@ -1,7 +1,7 @@
 ﻿import { TURRET_CONFIGS, type TurretType } from '../core/BuildingConfigs';
 import { Enemy } from '../enemies/Enemy';
 import type { Attackable } from '../core/Attackable';
-import { playSfx } from '../audio/Sfx';
+import { playSfx, createCryoBeam, type CryoBeamSound } from '../audio/Sfx';
 import { GameState } from '../core/GameState';
 
 export class Turret implements Attackable {
@@ -11,6 +11,12 @@ export class Turret implements Attackable {
   private readonly stats: (typeof TURRET_CONFIGS)[TurretType];
   private readonly scene: Phaser.Scene;
   private readonly gameState: GameState;
+
+  // Крио-луч (постоянный, без урона)
+  private beamCore?: Phaser.GameObjects.Line;
+  private beamGlow?: Phaser.GameObjects.Line;
+  private buzz?: CryoBeamSound;
+  private beamPulse = 0;
 
   healthPoints: number;
 
@@ -26,11 +32,22 @@ export class Turret implements Attackable {
     this.sprite.setDepth(24);
     this.sprite.setDisplaySize(32, 32);
     this.healthPoints = Math.round(200 * gameState.getTurretHealthMult());
+
+    if (this.type === 'freeze') {
+      this.buzz = createCryoBeam(scene);
+    }
   }
 
   public update(delta: number, enemies: Set<Enemy>): void {
     this.cooldown -= delta;
     const target = this.findTarget(enemies);
+
+    // Крио — постоянный луч: НЕ наносит урон, только замедляет (60%) и делает уязвимым (+20%).
+    if (this.type === 'freeze') {
+      this.updateCryoBeam(delta, target);
+      return;
+    }
+
     if (!target) return;
 
     const angle = Phaser.Math.Angle.Between(this.sprite.x, this.sprite.y, target.sprite.x, target.sprite.y);
@@ -39,11 +56,6 @@ export class Turret implements Attackable {
     if (this.cooldown > 0) return;
     const fireRate = this.stats.fireRate * this.gameState.getTurretFireRateMult();
     this.cooldown = 1000 / fireRate;
-
-    if (this.type === 'freeze') {
-      const freezePerShot = 1000 / fireRate;
-      target.applyFreezeCharge(freezePerShot);
-    }
 
     let damage = this.stats.damage * this.gameState.getTurretDamageMult();
     if (Math.random() < this.gameState.getTurretCritChance()) {
@@ -55,25 +67,72 @@ export class Turret implements Attackable {
     playSfx(this.scene, 'turret-shot');
   }
 
+  /** Держит непрерывный крио-луч на цели: копит заморозку каждый кадр + гудит «бззз». */
+  private updateCryoBeam(delta: number, target: Enemy | null): void {
+    if (!target) {
+      this.clearBeam();
+      this.buzz?.setActive(false);
+      return;
+    }
+
+    const angle = Phaser.Math.Angle.Between(this.sprite.x, this.sprite.y, target.sprite.x, target.sprite.y);
+    this.sprite.setRotation(angle);
+
+    target.applyFreezeCharge(delta); // постоянная подпитка => держит замедление/уязвимость, пока луч на цели
+    this.buzz?.setActive(true);
+    this.drawBeam(target.sprite.x, target.sprite.y, delta);
+  }
+
+  private drawBeam(endX: number, endY: number, delta: number): void {
+    const startX = this.sprite.x;
+    const startY = this.sprite.y;
+    this.beamPulse += delta * 0.02;
+    const pulse = 0.72 + Math.sin(this.beamPulse) * 0.22;
+
+    if (!this.beamCore || !this.beamGlow) {
+      this.beamCore = this.scene.add.line(0, 0, startX, startY, endX, endY, 0xbfeaff, 1)
+        .setOrigin(0, 0).setLineWidth(2.4, 2.4).setDepth(25);
+      this.beamGlow = this.scene.add.line(0, 0, startX, startY, endX, endY, 0x59b8ff, 1)
+        .setOrigin(0, 0).setLineWidth(7, 7).setDepth(24);
+    }
+
+    this.beamCore.setTo(startX, startY, endX, endY).setAlpha(0.95 * pulse);
+    this.beamGlow.setTo(startX, startY, endX, endY).setAlpha(0.4 * pulse);
+  }
+
+  private clearBeam(): void {
+    this.beamCore?.destroy();
+    this.beamGlow?.destroy();
+    this.beamCore = undefined;
+    this.beamGlow = undefined;
+  }
+
   takeDamage(amount: number): boolean {
     this.healthPoints -= amount;
     return this.healthPoints <= 0;
   }
 
   public destroy(): void {
+    this.clearBeam();
+    this.buzz?.destroy();
     this.sprite.destroy();
   }
 
   private findTarget(enemies: Set<Enemy>): Enemy | null {
     const range = this.stats.range * this.gameState.getTurretRangeMult();
     let bestTarget: Enemy | null = null;
-    let bestDistance: number = range;
+    let bestScore = -Infinity;
 
     for (const enemy of enemies) {
       if (enemy.isDead) continue;
       const distance = Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, enemy.sprite.x, enemy.sprite.y);
-      if (distance <= bestDistance) {
-        bestDistance = distance;
+      if (distance > range) continue;
+
+      // Приоритет: сначала замороженные цели (они уязвимы +20%), внутри группы — ближайшая.
+      const frozen = enemy.freezeStrength > 0.02 ? 1 : 0;
+      const score = frozen * 1e6 - distance;
+      if (score > bestScore) {
+        bestScore = score;
         bestTarget = enemy;
       }
     }
