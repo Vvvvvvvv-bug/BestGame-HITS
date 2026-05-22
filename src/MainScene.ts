@@ -19,6 +19,7 @@ import { UI_COLORS, UI_DEPTH } from './ui/uiTheme';
 import { BuildingManager } from './core/BuildingManager';
 import { CombatManager } from './core/CombatManager';
 import { playSfx } from './audio/Sfx';
+import { musicManager } from './audio/MusicManager';
 import { Airdrop } from './airdrops/Airdrop';
 import { Zealot } from './enemies/Zealot';
 import { QuizModal } from './ui/QuizModal';
@@ -152,6 +153,11 @@ export default class MainScene extends Phaser.Scene {
     this.load.svg('turret-1', 'src/assets/turret-1.svg', { width: 96, height: 96 });
     this.load.svg('turret-2', 'src/assets/turret-2.svg', { width: 96, height: 96 });
     this.load.svg('turret-3', 'src/assets/turret-3.svg', { width: 96, height: 96 });
+
+    // музыкальные треки
+    this.load.audio('music-main', 'music/main.mp3');
+    this.load.audio('music-victory', 'music/victory.mp3');
+    this.load.audio('music-defeat', 'music/defeat.mp3');
     this.load.svg('turret-freeze', 'src/assets/turret-freeze.svg', { width: 96, height: 96 });
     // 6 тайлов по CELL_SIZE (земля/камень/руда + 3 ландшафтных): растеризуем SVG ровно
     // в размер сетки, чтобы нарезка 32×32 попадала в целые тайлы, а не в их углы.
@@ -215,9 +221,12 @@ export default class MainScene extends Phaser.Scene {
       this.currentPhase = data.phase;
 
       if (data.phase === 'wave' && previousPhase !== 'wave') {
+        musicManager.play('main');
         this.enemySpawner.startWave(data.enemiesInWave, data.waveDuration, data.waveNumber);
         this.emitEnemiesRemainingUpdate();
         playSfx(this, 'phase-wave');
+      } else if ((data.phase === 'gathering' || data.phase === 'building') && previousPhase !== data.phase) {
+        musicManager.play('main');
       } else if (data.phase !== 'wave' && previousPhase === 'wave') {
         this.enemySpawner.stopWave();
       }
@@ -238,6 +247,7 @@ export default class MainScene extends Phaser.Scene {
       this.activeQuiz = undefined;
       this.activePauseModal?.destroy();
       this.activePauseModal = undefined;
+      musicManager.stop();
     });
 
     // ESC — пауза / выход в меню; Enter — подтвердить выход (как «Да»)
@@ -333,6 +343,27 @@ export default class MainScene extends Phaser.Scene {
     });
     this.spawnBossButtonBg.on('pointerdown', () => {
       this.enemySpawner.spawnBossDebug();
+      playSfx(this, 'ui-click');
+    });
+
+    // Debug-кнопка: мгновенная победа
+    const winButtonBg = this.add.rectangle(buttonX, buttonY - 40, 188, 32, 0x1a2a24, 0.96)
+      .setStrokeStyle(1, 0x79e6b2, 0.95)
+      .setDepth(UI_DEPTH + 1)
+      .setInteractive({ useHandCursor: true });
+
+    this.add.text(buttonX, buttonY - 40, 'ПОБЕДА', {
+      fontFamily: '"Inter", "Segoe UI", Arial, sans-serif',
+      fontSize: '13px',
+      color: '#d4ffea',
+      fontStyle: 'bold',
+      resolution: 2,
+    }).setOrigin(0.5).setDepth(UI_DEPTH + 2);
+
+    winButtonBg.on('pointerover', () => winButtonBg.setFillStyle(0x223a30, 1));
+    winButtonBg.on('pointerout', () => winButtonBg.setFillStyle(0x1a2a24, 0.96));
+    winButtonBg.on('pointerdown', () => {
+      this.showVictoryScreen();
       playSfx(this, 'ui-click');
     });
   }
@@ -1078,40 +1109,54 @@ export default class MainScene extends Phaser.Scene {
   private showVictoryScreen(): void {
     if (this.victoryShown) return;
 
+    musicManager.play('victory');
     this.victoryShown = true;
     this.enemySpawner.stopWave();
     this.currentPhase = 'victory';
 
-    // Оверлеи создаются после create() => uiCamera их игнорит, рисует только main (скроллится).
-    // setScrollFactor(0) держит их по центру экрана независимо от позиции камеры.
-    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x000000, 0.7).setDepth(1000).setScrollFactor(0);
+    const cx = this.scale.width / 2;
+    const cy = this.scale.height / 2;
 
-    const textObj = this.add.text(this.scale.width / 2, this.scale.height / 2, 'ПОБЕДА!', {
+    // backdrop
+    this.add.rectangle(cx, cy, this.scale.width, this.scale.height, 0x05080f, 0.72)
+      .setDepth(1000)
+      .setScrollFactor(0);
+
+    // panel
+    this.add.rectangle(cx, cy, 480, 280, 0x0f1a2c, 0.98)
+      .setStrokeStyle(2, 0x79e6b2)
+      .setDepth(1001)
+      .setScrollFactor(0);
+
+    // title
+    const title = this.add.text(cx, cy - 60, 'ПОБЕДА!', {
       fontSize: '48px',
-      color: '#00ff00',
-      fontStyle: 'bold'
-    }).setOrigin(0.5).setDepth(1001).setScrollFactor(0);
-
-    this.add.text(this.scale.width / 2, this.scale.height / 2 + 60, `Все ${this.waveManager.getCurrentWave()} волн пройдены`, {
-      fontSize: '20px',
-      color: '#ffffff'
-    }).setOrigin(0.5).setDepth(1001).setScrollFactor(0);
+      color: '#79e6b2',
+      fontStyle: 'bold',
+      fontFamily: '"Inter", "Segoe UI", Arial, sans-serif',
+    }).setOrigin(0.5).setDepth(1002).setScrollFactor(0);
 
     this.tweens.add({
-      targets: textObj,
+      targets: title,
       scale: 1.1,
       duration: 300,
       yoyo: true,
       repeat: -1
     });
 
-    this.add.text(this.scale.width / 2, this.scale.height / 2 + 120, 'Нажмите ЛКМ для меню', {
-      fontSize: '16px',
+    this.add.text(cx, cy + 20, `Все ${this.waveManager.getCurrentWave()} волн пройдены`, {
+      fontSize: '20px',
+      color: '#ffffff',
+      fontFamily: '"Inter", "Segoe UI", Arial, sans-serif',
+    }).setOrigin(0.5).setDepth(1002).setScrollFactor(0);
+
+    this.add.text(cx, cy + 80, 'Нажмите Enter для меню', {
+      fontSize: '18px',
       color: '#aabbcc',
       fontFamily: '"Inter", "Segoe UI", Arial, sans-serif',
-    }).setOrigin(0.5).setDepth(1001).setScrollFactor(0);
+    }).setOrigin(0.5).setDepth(1002).setScrollFactor(0);
 
-    this.input.once('pointerdown', () => {
+    this.input.keyboard?.once('keydown-ENTER', () => {
       this.scene.start('MenuScene');
     });
   }
@@ -1119,6 +1164,7 @@ export default class MainScene extends Phaser.Scene {
   private showGameOverScreen(): void {
     if (this.gameOverShown) return;
 
+    musicManager.play('defeat');
     this.gameOverShown = true;
     this.enemySpawner.stopWave();
     this.waveManager.setGameOver();

@@ -1,5 +1,6 @@
 ﻿import Phaser from 'phaser';
 import { playSfx } from '../audio/Sfx';
+import { musicManager } from '../audio/MusicManager';
 import { SettingsPanel } from '../ui/SettingsPanel';
 
 export default class MenuScene extends Phaser.Scene {
@@ -13,6 +14,7 @@ export default class MenuScene extends Phaser.Scene {
   private title!: Phaser.GameObjects.Text;
   private hint!: Phaser.GameObjects.Text;
   private settingsPanel?: SettingsPanel;
+
 
   // Фоновое «поле боя» (без звука)
   private ants: { sprite: Phaser.GameObjects.Sprite; frames: string[]; size: number; speed: number; frameTimer: number; frame: number; dying: boolean }[] = [];
@@ -28,6 +30,8 @@ export default class MenuScene extends Phaser.Scene {
 
   preload(): void {
     // MenuScene идёт раньше MainScene, поэтому грузим нужные ассеты сами.
+    this.load.audio('music-main', 'music/main.mp3');
+
     this.load.image('mb_ant_1', 'ants_assets/ants_sprite_sheet/4/walk/ant_walk_1.png');
     this.load.image('mb_ant_2', 'ants_assets/ants_sprite_sheet/4/walk/ant_walk_2.png');
     this.load.image('mb_ant_3', 'ants_assets/ants_sprite_sheet/4/walk/ant_walk_3.png');
@@ -48,6 +52,8 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   create(): void {
+    musicManager.attach(this.game);
+    musicManager.play('main');
     this.rebuildLayout();
 
     this.scale.on('resize', () => {
@@ -346,6 +352,23 @@ export default class MenuScene extends Phaser.Scene {
     }
 
     this.battleReady = true;
+
+    // --- Боссы по углам ---
+    const bossSize = 900;
+    const bossY = Math.max(h - 260, h * 0.68);
+    const bossXOffset = 180;
+
+    this.add
+      .sprite(bossXOffset, bossY, 'mb_boss_1')
+      .setDisplaySize(bossSize, bossSize)
+      .setDepth(7)
+      .setFlipX(true);
+
+    this.add
+      .sprite(w - bossXOffset, bossY, 'mb_boss_1')
+      .setDisplaySize(bossSize, bossSize)
+      .setDepth(7)
+      .setFlipX(false);
   }
 
   private recycleAnt(ant: MenuScene['ants'][number]): void {
@@ -461,6 +484,8 @@ export default class MenuScene extends Phaser.Scene {
 
       if (ant.sprite.x > this.frontLineX) this.recycleAnt(ant);
     }
+
+
 
     for (const t of this.turrets) {
       t.fireTimer -= step;
