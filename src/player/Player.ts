@@ -4,6 +4,7 @@ import { Enemy } from '../enemies/Enemy';
 
 export class Player {
   sprite: Phaser.GameObjects.Sprite;
+  private base: Phaser.GameObjects.Rectangle;
   healthPoints: number = 100;
   maxHealthPoints: number = 100;
   weapon: Weapon;
@@ -13,10 +14,14 @@ export class Player {
     this.scene = scene;
     this.weapon = new Weapon('hand');
 
-    this.sprite = scene.add.sprite(x, y, 'player', 'body');
+    this.base = scene.add.rectangle(x, y, 64, 64, 0x20344f, 0.28)
+      .setStrokeStyle(2, 0x8bd7ff, 0.8)
+      .setDepth(29);
+
+    this.sprite = scene.add.sprite(x, y, 'player');
     this.sprite.setOrigin(0.5, 0.5);
     this.sprite.setDepth(30);
-    this.sprite.setScale(1.5);
+    this.sprite.setDisplaySize(64, 64);
   }
 
   update(delta: number): void {
@@ -24,7 +29,7 @@ export class Player {
   }
 
   takeDamage(amount: number): boolean {
-    this.healthPoints -= amount;
+    this.healthPoints = Math.max(0, this.healthPoints - amount);
     return this.healthPoints <= 0;
   }
 
@@ -70,6 +75,7 @@ export class Player {
   }
 
   destroy(): void {
+    this.base.destroy();
     this.sprite.destroy();
   }
 }

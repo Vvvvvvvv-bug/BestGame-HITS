@@ -38,6 +38,22 @@ export class WaveManager {
       phase: this.currentPhase,
       waveNumber: this.currentWave,
       timeLeft: Math.max(0, duration - this.phaseTimer),
+      waveDuration: duration,
+      enemiesInWave: this.enemiesCount
+    });
+  }
+
+  public completeWave(): void {
+    if (this.currentPhase !== 'wave') return;
+
+    this.transitionToNextPhase();
+    const duration = this.getCurrentPhaseDuration();
+
+    eventBus.emit('wave-update', {
+      phase: this.currentPhase,
+      waveNumber: this.currentWave,
+      timeLeft: duration,
+      waveDuration: duration,
       enemiesInWave: this.enemiesCount
     });
   }
@@ -97,6 +113,10 @@ export class WaveManager {
 
   public getEnemiesForWave(): number {
     return this.enemiesCount;
+  }
+
+  public getWaveDuration(): number {
+    return this.waveDuration;
   }
 
   public getCurrentWave(): number {

@@ -1,4 +1,4 @@
-import { BOMB_CONFIG } from '../core/BuildingConfigs';
+import { EXPLOSIVE_CONFIG } from '../core/BuildingConfigs';
 import { Enemy } from '../enemies/Enemy';
 
 export class Bomb {
@@ -16,7 +16,7 @@ export class Bomb {
     this.y = y;
     this.onDetonate = onDetonate;
 
-    this.sprite = scene.add.sprite(x, y, 'bombs', 'bomb');
+    this.sprite = scene.add.sprite(x, y, 'bomb');
     this.sprite.setOrigin(0.5, 0.5);
     this.sprite.setDepth(15);
     this.sprite.setInteractive({ useHandCursor: true });
@@ -49,7 +49,7 @@ export class Bomb {
     // Рисуем взрыв
     const graphics = this.scene.add.graphics();
     graphics.fillStyle(0xFF6B00, 0.6);
-    graphics.fillCircle(this.x, this.y, BOMB_CONFIG.radius);
+    graphics.fillCircle(this.x, this.y, EXPLOSIVE_CONFIG.radius);
     
     this.scene.tweens.add({
       targets: graphics,
@@ -69,7 +69,7 @@ export class Bomb {
       const dy = enemy.sprite.y - this.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
-      if (distance <= BOMB_CONFIG.radius) {
+      if (distance <= EXPLOSIVE_CONFIG.radius) {
         affected.push(enemy);
       }
     }
@@ -80,12 +80,12 @@ export class Bomb {
   update(delta: number): void {
     if (!this.canDetonate) {
       this.lastDetonatedTime += delta;
-      if (this.lastDetonatedTime >= BOMB_CONFIG.cooldown) {
+      if (this.lastDetonatedTime >= EXPLOSIVE_CONFIG.cooldown) {
         this.canDetonate = true;
         this.sprite.setAlpha(1);
       } else {
         // Показываем кд через альфу
-        this.sprite.setAlpha(0.5 + 0.5 * (this.lastDetonatedTime / BOMB_CONFIG.cooldown));
+        this.sprite.setAlpha(0.5 + 0.5 * (this.lastDetonatedTime / EXPLOSIVE_CONFIG.cooldown));
       }
     }
   }

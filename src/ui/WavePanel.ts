@@ -1,4 +1,5 @@
 import { eventBus } from '../core/EventBus';
+import { createHudPanel, TEXT_STYLE, UI_COLORS, UI_DEPTH } from './uiTheme';
 
 const PHASE_NAMES: Record<string, string> = {
   'gathering': 'Сбор ресурсов',
@@ -24,61 +25,60 @@ export class WavePanel {
   private timerText: Phaser.GameObjects.Text;
   private enemiesText: Phaser.GameObjects.Text;
   private progressBar: Phaser.GameObjects.Rectangle;
-  private progressBarBg: Phaser.GameObjects.Rectangle;
 
   constructor(scene: Phaser.Scene) {
-    const panelX = scene.scale.width / 2;
-    
-    // Фон панели
-    const bg = scene.add.rectangle(panelX, 20, 250, 80, 0x1a1a2e, 0.8);
-    bg.setStrokeStyle(2, 0x00d2ff);
+    const panelX = 112;
+    const panelY = 112;
 
-    // Текст фазы
-    this.phaseText = scene.add.text(panelX - 120, 10, 'Сбор ресурсов', {
-      fontSize: '16px',
+    createHudPanel(scene, panelX, panelY, 218, 78, 0.92);
+
+    this.phaseText = scene.add.text(panelX, panelY - 30, 'Сбор ресурсов', {
+      ...TEXT_STYLE,
+      fontSize: '15px',
       fontStyle: 'bold',
       color: '#4CAF50'
     });
-    this.phaseText.setOrigin(0, 0);
-    this.phaseText.setDepth(1001);
+    this.phaseText.setOrigin(0.5, 0);
+    this.phaseText.setDepth(UI_DEPTH + 1);
 
-    // Текст волны
-    this.waveText = scene.add.text(panelX - 120, 30, 'Волна: 0', {
-      fontSize: '14px',
-      color: '#ffffff'
+    this.waveText = scene.add.text(panelX - 94, panelY - 9, 'Волна: 0', {
+      ...TEXT_STYLE,
+      fontSize: '13px',
+      color: UI_COLORS.text
     });
     this.waveText.setOrigin(0, 0);
-    this.waveText.setDepth(1001);
+    this.waveText.setDepth(UI_DEPTH + 1);
 
-    // Текст врагов
-    this.enemiesText = scene.add.text(panelX + 10, 30, 'Врагов: 0', {
-      fontSize: '14px',
-      color: '#ff6b6b'
+    this.enemiesText = scene.add.text(panelX + 18, panelY - 9, 'Врагов: 0', {
+      ...TEXT_STYLE,
+      fontSize: '13px',
+      color: '#ff8da1'
     });
     this.enemiesText.setOrigin(0, 0);
-    this.enemiesText.setDepth(1001);
+    this.enemiesText.setDepth(UI_DEPTH + 1);
 
-    // Таймер
-    this.timerText = scene.add.text(panelX - 120, 50, 'Время: 0s', {
-      fontSize: '14px',
-      color: '#ffeb3b'
+    this.timerText = scene.add.text(panelX - 94, panelY + 12, 'Время: 0с', {
+      ...TEXT_STYLE,
+      fontSize: '13px',
+      color: '#ffe083'
     });
     this.timerText.setOrigin(0, 0);
-    this.timerText.setDepth(1001);
+    this.timerText.setDepth(UI_DEPTH + 1);
 
-    // Прогресс бар (фон)
-    this.progressBarBg = scene.add.rectangle(panelX - 120, 72, 200, 10, 0x333333);
-    this.progressBarBg.setOrigin(0, 0);
-    this.progressBarBg.setDepth(1000);
+    const progressBarBg = scene.add.rectangle(panelX + 8, panelY + 17, 86, 8, 0x263349);
+    progressBarBg.setOrigin(0, 0);
+    progressBarBg.setDepth(UI_DEPTH + 1);
 
-    // Прогресс бар (заполнение)
-    this.progressBar = scene.add.rectangle(panelX - 120, 72, 0, 10, 0x00d2ff);
+    this.progressBar = scene.add.rectangle(panelX + 8, panelY + 17, 86, 8, UI_COLORS.selected);
     this.progressBar.setOrigin(0, 0);
-    this.progressBar.setDepth(1001);
+    this.progressBar.setDepth(UI_DEPTH + 2);
 
-    // Подписываемся на события волны
     eventBus.on('wave-update', (data) => {
       this.update(data);
+    });
+
+    eventBus.on('enemies-remaining-update', (data) => {
+      this.enemiesText.setText(`Осталось: ${data.enemiesRemaining}`);
     });
   }
 
@@ -86,6 +86,7 @@ export class WavePanel {
     phase: string;
     waveNumber: number;
     timeLeft: number;
+    waveDuration: number;
     enemiesInWave: number;
   }): void {
     const phase = data.phase as keyof typeof PHASE_NAMES;
@@ -94,15 +95,15 @@ export class WavePanel {
     this.phaseText.setColor(PHASE_COLORS[phase]);
 
     this.waveText.setText(`Волна: ${data.waveNumber}`);
-    this.enemiesText.setText(`Врагов: ${data.enemiesInWave}`);
+    if (data.phase !== 'wave') {
+      this.enemiesText.setText(`Врагов: ${data.enemiesInWave}`);
+    }
     
     const seconds = Math.ceil(data.timeLeft / 1000);
-    this.timerText.setText(`Время: ${seconds}s`);
-
-    // Обновляем прогресс бар - нужно передавать progress из менеджера
+    this.timerText.setText(`Время: ${seconds}с`);
   }
 
   public updateProgress(progress: number): void {
-    this.progressBar.setScale(progress, 1);
+    this.progressBar.setScale(Phaser.Math.Clamp(progress, 0, 1), 1);
   }
 }

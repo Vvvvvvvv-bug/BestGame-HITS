@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="144" height="48" viewBox="0 0 144 48">
+  <defs>
+    <linearGradient id="ground" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#182433"/>
+      <stop offset="1" stop-color="#0f1724"/>
+    </linearGradient>
+    <linearGradient id="stone" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#a8b3c1"/>
+      <stop offset="1" stop-color="#556171"/>
+    </linearGradient>
+    <linearGradient id="ore" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9df2ff"/>
+      <stop offset="1" stop-color="#2e78c7"/>
+    </linearGradient>
+  </defs>
+  <rect width="48" height="48" fill="url(#ground)"/>
+  <path d="M7 15c11-9 23-8 34 0M5 35c12-7 24-8 38-2" fill="none" stroke="#26394e" stroke-width="2" stroke-linecap="round" opacity=".55"/>
+  <circle cx="14" cy="28" r="2.4" fill="#32475f" opacity=".7"/>
+  <circle cx="36" cy="14" r="1.8" fill="#32475f" opacity=".65"/>
+  <rect x="48" width="48" height="48" fill="url(#ground)"/>
+  <path d="M60 14c5-8 19-10 28-2 7 7 4 20-5 24-11 5-26 1-28-9-1-5 1-9 5-13Z" fill="url(#stone)"/>
+  <path d="M62 19c9-3 17-3 25 2M66 29c5 3 12 3 18 0" fill="none" stroke="#d8e0e8" stroke-width="3" stroke-linecap="round" opacity=".5"/>
+  <rect x="96" width="48" height="48" fill="url(#ground)"/>
+  <path d="M120 6 103 41h34L120 6Z" fill="url(#ore)"/>
+  <path d="M119 13 111 34h15l-7-21Z" fill="#d9fbff" opacity=".5"/>
+  <path d="M120 6 103 41h34L120 6Z" fill="none" stroke="#88dcff" stroke-width="2"/>
+</svg>

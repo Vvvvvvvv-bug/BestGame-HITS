@@ -1,4 +1,4 @@
-export type WeaponType = 'hand' | 'axe' | 'pistol';
+export type WeaponType = 'hand' | 'axe' | 'pistol' | 'machinegun';
 
 export interface WeaponStats {
   name: string;
@@ -29,6 +29,13 @@ export const WEAPON_CONFIGS: Record<WeaponType, WeaponStats> = {
     attackSpeed: 2,
     range: 300,
     cost: 300
+  },
+  machinegun: {
+    name: 'Пулемет',
+    damage: 18,
+    attackSpeed: 7,
+    range: 360,
+    cost: 700
   }
 };
 

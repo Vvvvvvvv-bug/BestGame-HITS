@@ -9,7 +9,7 @@ export abstract class Building {
     scene: Phaser.Scene,
     x: number,
     y: number,
-    frameKey: string,
+    textureKey: string,
     healthPoints: number
   ) {
     this.gridX = x;
@@ -17,9 +17,11 @@ export abstract class Building {
     this.healthPoints = healthPoints;
     this.maxHealthPoints = healthPoints;
 
-    this.sprite = scene.add.sprite(x, y, 'buildings', frameKey);
-    this.sprite.setOrigin(0, 0);
+    this.sprite = scene.add.sprite(x, y, textureKey);
+    
+    this.sprite.setOrigin(0.5, 0.5);
     this.sprite.setDepth(10);
+    this.sprite.setDisplaySize(30, 30);
   }
 
   abstract update(delta: number): void;
