@@ -4,6 +4,7 @@ export class BruteAnt extends Enemy {
   private readonly idleFrames = ['brute_idle_1', 'brute_idle_2', 'brute_idle_3', 'brute_idle_4'];
   private readonly walkFrames = ['brute_walk_1', 'brute_walk_2', 'brute_walk_3'];
   private readonly attackFrames = ['brute_attack_1', 'brute_attack_2', 'brute_attack_3'];
+  protected readonly deadFrames = ['brute_dead_1', 'brute_dead_2', 'brute_dead_3'];
   private animTimer = 0;
   private attackAnimTimer = 0;
   private lastAttackAt = -2000;

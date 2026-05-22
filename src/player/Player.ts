@@ -46,6 +46,7 @@ export class Player implements Attackable {
     let minDistance = this.weapon.stats.range;
 
     for (const enemy of enemies) {
+      if (enemy.isDead) continue;
       const dx = enemy.sprite.x - this.sprite.x;
       const dy = enemy.sprite.y - this.sprite.y;
       const distance = Math.sqrt(dx * dx + dy * dy);

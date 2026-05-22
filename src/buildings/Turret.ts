@@ -50,14 +50,9 @@ export class Turret implements Attackable {
       damage *= 2;
     }
 
-    const dead = target.takeDamage(Math.round(damage));
+    target.takeDamage(Math.round(damage));
     this.drawShot(target);
     playSfx(this.scene, 'turret-shot');
-
-    if (dead) {
-      enemies.delete(target);
-      target.destroy();
-    }
   }
 
   takeDamage(amount: number): boolean {
@@ -75,6 +70,7 @@ export class Turret implements Attackable {
     let bestDistance: number = range;
 
     for (const enemy of enemies) {
+      if (enemy.isDead) continue;
       const distance = Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, enemy.sprite.x, enemy.sprite.y);
       if (distance <= bestDistance) {
         bestDistance = distance;

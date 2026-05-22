@@ -145,8 +145,9 @@ export class TurretSelector {
       status.setText(`${cost} Fe`);
       status.setColor(this.gameState.resources.iron >= cost ? '#FFD166' : '#ff5c7a');
     });
-
-    this.refreshTreePanel();
+    // НЕ дёргаем refreshTreePanel здесь: update() зовётся каждый кадр, а перестройка
+    // уничтожает/пересоздаёт узлы 60 раз/сек -> по ним невозможно кликнуть. Дерево
+    // перестраивается только при открытии и после покупки.
   }
 
   private handleClick(type: TurretType): void {
@@ -276,11 +277,11 @@ export class TurretSelector {
     nodeBg.on('pointerdown', () => {
       if (!this.gameState.buyTurretUpgrade(upgrade.id, upgrade.cost)) {
         playSfx(this.scene, 'ui-deny');
-        this.update();
         return;
       }
       playSfx(this.scene, 'unlock');
       this.update();
+      this.refreshTreePanel();
     });
   }
 
@@ -319,11 +320,11 @@ export class TurretSelector {
     nodeBg.on('pointerdown', () => {
       if (!unlockFn()) {
         playSfx(this.scene, 'ui-deny');
-        this.update();
         return;
       }
       playSfx(this.scene, 'unlock');
       this.update();
+      this.refreshTreePanel();
     });
   }
 }

@@ -16,6 +16,14 @@ export class CombatManager {
     const collisionTargets = player.healthPoints > 0 ? [...targetArray, player] : targetArray;
 
     for (const enemy of enemies) {
+      if (enemy.isDead) {
+        enemy.updateDeath(delta);
+        if (enemy.removable) {
+          deadEnemies.push(enemy);
+        }
+        continue;
+      }
+
       enemy.setCollisionTargets(collisionTargets);
 
       const currentTarget = enemy.getAttackTarget();

@@ -12,7 +12,7 @@ export class GameState {
   public resources = {
     iron: 2200,
     stone: 1800,
-    gradePoint: 0,
+    gradePoint: 3,
   };
 
   public drillsBuilt = 0;

@@ -4,6 +4,7 @@ export class Zealot extends Enemy {
   private readonly idleFrames = ['ant_idle_1', 'ant_idle_2', 'ant_idle_3', 'ant_idle_4'];
   private readonly walkFrames = ['ant_walk_1', 'ant_walk_2', 'ant_walk_3'];
   private readonly attackFrames = ['ant_attack_1', 'ant_attack_2', 'ant_attack_3'];
+  protected readonly deadFrames = ['ant_dead_1', 'ant_dead_2', 'ant_dead_3'];
   private animTimer = 0;
   private attackAnimTimer = 0;
   private lastAttackAt = -2000;

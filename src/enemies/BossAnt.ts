@@ -4,6 +4,7 @@ export class BossAnt extends Enemy {
   private readonly idleFrames = ['boss_idle_1', 'boss_idle_2', 'boss_idle_3', 'boss_idle_4'];
   private readonly walkFrames = ['boss_walk_1', 'boss_walk_2', 'boss_walk_3'];
   private readonly attackFrames = ['boss_attack_1', 'boss_attack_2', 'boss_attack_3'];
+  protected readonly deadFrames = ['boss_dead_1', 'boss_dead_2', 'boss_dead_3'];
   private animTimer = 0;
   private attackAnimTimer = 0;
   private lastAttackAt = -2000;

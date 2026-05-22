@@ -21,6 +21,11 @@ export abstract class Enemy implements Attackable {
   protected moveBlend = 0;
   protected roarTimer = Phaser.Math.Between(2200, 5200);
   protected collisionTargets: Attackable[] = [];
+  protected deadFrames: string[] = [];
+
+  isDead = false;
+  deathTimer = 0;
+  removable = false;
 
   private freezeChargeMs = 0;
   private freezeDecayDelayMs = 0;
@@ -188,6 +193,8 @@ export abstract class Enemy implements Attackable {
   abstract update(delta: number): void;
 
   takeDamage(amount: number): boolean {
+    if (this.isDead) return false;
+
     const bonus = 1 + this.getFreezeStrength() * 0.3;
     this.healthPoints -= Math.round(amount * bonus);
 
@@ -196,11 +203,39 @@ export abstract class Enemy implements Attackable {
       this.ensureHealthBar();
       this.updateHealthBarFill();
       this.updateHealthBarPosition();
-    } else {
-      playSfx(this.scene, 'enemy-death');
+      return false;
     }
 
-    return this.healthPoints <= 0;
+    this.healthPoints = 0;
+    this.isDead = true;
+    playSfx(this.scene, 'enemy-death');
+    this.hpBarBg?.destroy();
+    this.hpBarFill?.destroy();
+    this.hpBarBg = undefined;
+    this.hpBarFill = undefined;
+    this.sprite.clearTint();
+    if (this.deadFrames.length > 0) {
+      this.sprite.setTexture(this.deadFrames[0]);
+    }
+    return true;
+  }
+
+  updateDeath(delta: number): void {
+    this.deathTimer += delta;
+    if (this.deadFrames.length > 0) {
+      const frameDuration = 150;
+      const index = Math.min(
+        Math.floor(this.deathTimer / frameDuration),
+        this.deadFrames.length - 1
+      );
+      const frameKey = this.deadFrames[index];
+      if (this.sprite.texture.key !== frameKey) {
+        this.sprite.setTexture(frameKey);
+      }
+    }
+    if (this.deathTimer >= 20000) {
+      this.removable = true;
+    }
   }
 
   destroy(): void {

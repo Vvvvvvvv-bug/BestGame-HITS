@@ -109,6 +109,9 @@ export default class MainScene extends Phaser.Scene {
     this.load.image('ant_attack_1', 'ants_assets/ants_sprite_sheet/4/attack/ant_attack_1.png');
     this.load.image('ant_attack_2', 'ants_assets/ants_sprite_sheet/4/attack/ant_attack_2.png');
     this.load.image('ant_attack_3', 'ants_assets/ants_sprite_sheet/4/attack/ant_attack_3.png');
+    this.load.image('ant_dead_1', 'ants_assets/ants_sprite_sheet/4/dead/ant_dead_1.png');
+    this.load.image('ant_dead_2', 'ants_assets/ants_sprite_sheet/4/dead/ant_dead_2.png');
+    this.load.image('ant_dead_3', 'ants_assets/ants_sprite_sheet/4/dead/ant_dead_3.png');
     this.load.image('brute_idle_1', 'ants_assets/ants_sprite_sheet/10/idle/ant_idle_1.png');
     this.load.image('brute_idle_2', 'ants_assets/ants_sprite_sheet/10/idle/ant_idle_2.png');
     this.load.image('brute_idle_3', 'ants_assets/ants_sprite_sheet/10/idle/ant_idle_3.png');
@@ -119,6 +122,9 @@ export default class MainScene extends Phaser.Scene {
     this.load.image('brute_attack_1', 'ants_assets/ants_sprite_sheet/10/attack/ant_attack_1.png');
     this.load.image('brute_attack_2', 'ants_assets/ants_sprite_sheet/10/attack/ant_attack_2.png');
     this.load.image('brute_attack_3', 'ants_assets/ants_sprite_sheet/10/attack/ant_attack_3.png');
+    this.load.image('brute_dead_1', 'ants_assets/ants_sprite_sheet/10/dead/ant_dead_1.png');
+    this.load.image('brute_dead_2', 'ants_assets/ants_sprite_sheet/10/dead/ant_dead_2.png');
+    this.load.image('brute_dead_3', 'ants_assets/ants_sprite_sheet/10/dead/ant_dead_3.png');
     this.load.image('boss_idle_1', 'ants_assets/ants_sprite_sheet/9/idle/ant_idle_1.png');
     this.load.image('boss_idle_2', 'ants_assets/ants_sprite_sheet/9/idle/ant_idle_2.png');
     this.load.image('boss_idle_3', 'ants_assets/ants_sprite_sheet/9/idle/ant_idle_3.png');
@@ -129,6 +135,9 @@ export default class MainScene extends Phaser.Scene {
     this.load.image('boss_attack_1', 'ants_assets/ants_sprite_sheet/9/attack/ant_attack_1.png');
     this.load.image('boss_attack_2', 'ants_assets/ants_sprite_sheet/9/attack/ant_attack_2.png');
     this.load.image('boss_attack_3', 'ants_assets/ants_sprite_sheet/9/attack/ant_attack_3.png');
+    this.load.image('boss_dead_1', 'ants_assets/ants_sprite_sheet/9/dead/ant_dead_1.png');
+    this.load.image('boss_dead_2', 'ants_assets/ants_sprite_sheet/9/dead/ant_dead_2.png');
+    this.load.image('boss_dead_3', 'ants_assets/ants_sprite_sheet/9/dead/ant_dead_3.png');
     this.load.svg('turret-1', 'src/assets/turret-1.svg', { width: 96, height: 96 });
     this.load.svg('turret-2', 'src/assets/turret-2.svg', { width: 96, height: 96 });
     this.load.svg('turret-3', 'src/assets/turret-3.svg', { width: 96, height: 96 });
@@ -584,11 +593,7 @@ export default class MainScene extends Phaser.Scene {
     if (gridX < 0 || gridX >= this.cols || gridY < 0 || gridY >= this.rows) {
       this.turretSelector?.clearSelection();
       if (this.currentPhase === 'wave') {
-        const deadEnemy = this.player.attackEnemy(this.enemies);
-        if (deadEnemy) {
-          this.enemies.delete(deadEnemy);
-          deadEnemy.destroy();
-        }
+        this.player.attackEnemy(this.enemies);
       }
       return;
     }
@@ -683,10 +688,7 @@ export default class MainScene extends Phaser.Scene {
     const bomb = createBomb(this, worldX, worldY, (activatedBomb) => {
       const affected = activatedBomb.getEnemiesInRadius(this.enemies);
       for (const enemy of affected) {
-        if (enemy.takeDamage(50)) { 
-          this.enemies.delete(enemy);
-          enemy.destroy();
-        }
+        enemy.takeDamage(50);
       }
       this.buildingManager.removeBomb(bombKey);
     });
