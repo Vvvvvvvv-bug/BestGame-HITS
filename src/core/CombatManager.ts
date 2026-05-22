@@ -11,7 +11,7 @@ export class CombatManager {
     player: Player
   ): Enemy[] {
     const deadEnemies: Enemy[] = [];
-    const targetArray = Array.from(targets);
+    const targetArray = Array.from(targets).filter((t) => t.healthPoints > 0);
 
     for (const enemy of enemies) {
       if (enemy.needsTarget()) {

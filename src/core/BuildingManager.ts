@@ -66,6 +66,18 @@ export class BuildingManager {
         this.buildings.delete(key);
       }
     }
+    for (const [key, turret] of this.turrets.entries()) {
+      if (turret.healthPoints <= 0) {
+        turret.destroy();
+        this.turrets.delete(key);
+      }
+    }
+    for (const [key, bomb] of this.bombs.entries()) {
+      if (bomb.healthPoints <= 0) {
+        bomb.destroy();
+        this.bombs.delete(key);
+      }
+    }
   }
 
   removeBomb(bomb: Bomb): void {

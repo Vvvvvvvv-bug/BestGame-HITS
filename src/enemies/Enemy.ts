@@ -48,7 +48,13 @@ export abstract class Enemy {
   }
 
   needsTarget(): boolean {
-    return this.targetX === null || this.targetY === null || !this.attackTarget;
+    if (this.targetX === null || this.targetY === null) return true;
+    if (!this.attackTarget) return true;
+    if (this.attackTarget.healthPoints <= 0) {
+      this.attackTarget = null;
+      return true;
+    }
+    return false;
   }
 
   protected moveTowardsTarget(delta: number): void {
