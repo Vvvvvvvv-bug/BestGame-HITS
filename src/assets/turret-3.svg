@@ -1,1 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48"><circle cx="24" cy="29" r="15" fill="#121b2b" stroke="#ffd166" stroke-width="3"/><path d="M24 25 41 16M24 30 42 25M22 22 37 11" stroke="#f4f8ff" stroke-width="4" stroke-linecap="round"/><circle cx="24" cy="29" r="5" fill="#ffd166"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="t3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3a3554"/>
+      <stop offset="1" stop-color="#120e1f"/>
+    </linearGradient>
+  </defs>
+  <g transform="rotate(-34 24 24)">
+    <!-- тяжёлое бронеоснование -->
+    <circle cx="24" cy="24" r="16" fill="url(#t3)" stroke="#ffd166" stroke-width="2.5"/>
+    <!-- три ствола (центральный длиннее и толще) -->
+    <rect x="22" y="14.5" width="23" height="4.4" rx="2.1" fill="#e3eaf5" stroke="#120e1f" stroke-width="1"/>
+    <rect x="22" y="21.7" width="25" height="4.8" rx="2.3" fill="#f1f5fc" stroke="#120e1f" stroke-width="1"/>
+    <rect x="22" y="29.1" width="23" height="4.4" rx="2.1" fill="#e3eaf5" stroke="#120e1f" stroke-width="1"/>
+    <!-- дульные вспышки -->
+    <circle cx="45" cy="16.7" r="1.8" fill="#ffb052"/>
+    <circle cx="47" cy="24.1" r="2" fill="#ffb052"/>
+    <circle cx="45" cy="31.3" r="1.8" fill="#ffb052"/>
+    <!-- башня + ядро -->
+    <circle cx="24" cy="24" r="8" fill="#221733" stroke="#ffd166" stroke-width="1.8"/>
+    <circle cx="24" cy="24" r="3.4" fill="#ffb052"/>
+  </g>
+</svg>

@@ -1,1 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48"><circle cx="24" cy="29" r="14" fill="#121b2b" stroke="#42f5a7" stroke-width="3"/><path d="M24 26 40 17M24 32 40 26" stroke="#e8eef7" stroke-width="5" stroke-linecap="round"/><circle cx="24" cy="29" r="5" fill="#42f5a7"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="t2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1c3a4a"/>
+      <stop offset="1" stop-color="#0c1622"/>
+    </linearGradient>
+  </defs>
+  <g transform="rotate(-34 24 24)">
+    <!-- бронеоснование -->
+    <circle cx="24" cy="24" r="15" fill="url(#t2)" stroke="#42f5a7" stroke-width="2.5"/>
+    <!-- два ствола -->
+    <rect x="22" y="18" width="23" height="4.6" rx="2.3" fill="#d2dcea" stroke="#091019" stroke-width="1"/>
+    <rect x="22" y="25.4" width="23" height="4.6" rx="2.3" fill="#d2dcea" stroke="#091019" stroke-width="1"/>
+    <!-- дульные срезы -->
+    <rect x="42.5" y="17.6" width="3" height="5.4" rx="1" fill="#7dffc4"/>
+    <rect x="42.5" y="25" width="3" height="5.4" rx="1" fill="#7dffc4"/>
+    <!-- башня + ядро -->
+    <circle cx="24" cy="24" r="7" fill="#13283a" stroke="#42f5a7" stroke-width="1.6"/>
+    <circle cx="24" cy="24" r="3.2" fill="#7dffc4"/>
+  </g>
+</svg>
