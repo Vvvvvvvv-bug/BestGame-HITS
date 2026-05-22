@@ -5,8 +5,8 @@ import type { ResourceCost } from "./BuildingConfigs";
 
 export class GameState {
     public resources = {
-        iron: 1200,
-        stone: 1000
+        iron: 2200,
+        stone: 1800
     };
     public drillsBuilt = 0;
     public turretsBuilt = 0;

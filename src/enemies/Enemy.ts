@@ -73,13 +73,6 @@ export abstract class Enemy implements Attackable {
   }
 
   protected moveTowardsTarget(delta: number): void {
-    const proximityTarget = this.findProximityTarget();
-    if (proximityTarget) {
-      this.targetX = proximityTarget.sprite.x;
-      this.targetY = proximityTarget.sprite.y;
-      this.attackTarget = proximityTarget;
-    }
-
     if (this.targetX === null || this.targetY === null) return;
 
     const dx = this.targetX - this.sprite.x;
@@ -98,20 +91,19 @@ export abstract class Enemy implements Attackable {
     const moveX = (dx / distance) * moveDistance;
     const moveY = (dy / distance) * moveDistance;
 
-    const nextX = this.sprite.x + moveX;
-    const nextY = this.sprite.y + moveY;
-    const blocker = this.findCollisionBlocker(nextX, nextY);
-    if (blocker) {
-      this.targetX = blocker.sprite.x;
-      this.targetY = blocker.sprite.y;
-      this.attackTarget = blocker;
+    const moved = this.tryMoveWithAvoidance(moveX, moveY);
+    if (!moved) {
+      const blocker = this.findCollisionBlocker(this.sprite.x + moveX, this.sprite.y + moveY);
+      if (blocker) {
+        this.targetX = blocker.sprite.x;
+        this.targetY = blocker.sprite.y;
+        this.attackTarget = blocker;
+      }
       this.moveBlend = Math.max(0, this.moveBlend - delta * 0.01);
       this.updateHealthBarPosition();
       return;
     }
 
-    this.sprite.x = nextX;
-    this.sprite.y = nextY;
     this.gridX = this.sprite.x;
     this.gridY = this.sprite.y;
     this.moveBlend = Math.min(1, this.moveBlend + delta * 0.008);
@@ -224,7 +216,7 @@ export abstract class Enemy implements Attackable {
 
     this.roarTimer = Phaser.Math.Between(3200, 7600);
     if (Math.random() < 0.42) {
-      playSfx(this.scene, 'enemy-roar');
+      playSfx(this.scene, Math.random() < 0.55 ? 'enemy-roar' : 'enemy-chitter');
     }
   }
 
@@ -246,26 +238,36 @@ export abstract class Enemy implements Attackable {
     return null;
   }
 
-  private findProximityTarget(): Attackable | null {
-    const ownRadius = Math.max(this.sprite.displayWidth, this.sprite.displayHeight) * 0.28;
-    let best: Attackable | null = null;
-    let bestDistance = Infinity;
+  private tryMoveWithAvoidance(moveX: number, moveY: number): boolean {
+    const nextX = this.sprite.x + moveX;
+    const nextY = this.sprite.y + moveY;
+    if (!this.findCollisionBlocker(nextX, nextY)) {
+      this.sprite.x = nextX;
+      this.sprite.y = nextY;
+      return true;
+    }
 
-    for (const target of this.collisionTargets) {
-      if (target.healthPoints <= 0) continue;
-
-      const dx = target.sprite.x - this.sprite.x;
-      const dy = target.sprite.y - this.sprite.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      const targetRadius = Math.max(target.sprite.displayWidth, target.sprite.displayHeight) * 0.34;
-      const aggroDistance = ownRadius + targetRadius + 12;
-
-      if (distance <= aggroDistance && distance < bestDistance) {
-        bestDistance = distance;
-        best = target;
+    const angles = [Phaser.Math.DegToRad(35), Phaser.Math.DegToRad(-35), Phaser.Math.DegToRad(65), Phaser.Math.DegToRad(-65)];
+    for (const angle of angles) {
+      const alt = this.rotate(moveX, moveY, angle);
+      const altX = this.sprite.x + alt.x;
+      const altY = this.sprite.y + alt.y;
+      if (!this.findCollisionBlocker(altX, altY)) {
+        this.sprite.x = altX;
+        this.sprite.y = altY;
+        return true;
       }
     }
 
-    return best;
+    return false;
+  }
+
+  private rotate(x: number, y: number, radians: number): { x: number; y: number } {
+    const cos = Math.cos(radians);
+    const sin = Math.sin(radians);
+    return {
+      x: x * cos - y * sin,
+      y: x * sin + y * cos,
+    };
   }
 }

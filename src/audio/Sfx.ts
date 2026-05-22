@@ -11,6 +11,7 @@ type SfxType =
   | 'enemy-death'
   | 'enemy-attack'
   | 'enemy-roar'
+  | 'enemy-chitter'
   | 'phase-wave';
 
 function getContext(scene: Phaser.Scene): AudioContext | null {
@@ -108,8 +109,13 @@ export function playSfx(scene: Phaser.Scene, type: SfxType): void {
       tone(scene, 130, 90, 0.022, 'triangle');
       break;
     case 'enemy-roar':
-      sweep(scene, 220, 120, 190, 0.022, 'sawtooth');
-      tone(scene, 95, 140, 0.017, 'triangle');
+      sweep(scene, 300, 160, 170, 0.02, 'triangle');
+      tone(scene, 140, 120, 0.014, 'triangle');
+      break;
+    case 'enemy-chitter':
+      tone(scene, 980, 45, 0.012, 'square');
+      tone(scene, 1220, 38, 0.01, 'square');
+      tone(scene, 860, 42, 0.01, 'square');
       break;
     case 'phase-wave':
       tone(scene, 420, 100, 0.03, 'square');
