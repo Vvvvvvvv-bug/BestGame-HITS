@@ -2,8 +2,8 @@ import { TEXT_STYLE, UI_COLORS } from './uiTheme';
 import { settings, type GameSettings } from '../core/Settings';
 
 const MODAL_DEPTH = 2000;
-const PANEL_W = 480;
-const PANEL_H = 380;
+const PANEL_W = 440;
+const PANEL_H = 340;
 
 export class SettingsPanel {
   private readonly scene: Phaser.Scene;
@@ -16,9 +16,9 @@ export class SettingsPanel {
   private musicFill!: Phaser.GameObjects.Rectangle;
   private musicKnob!: Phaser.GameObjects.Ellipse;
 
-  // quality & difficulty buttons
-  private qualityBgs: Phaser.GameObjects.Rectangle[] = [];
+  // difficulty squares
   private difficultyBgs: Phaser.GameObjects.Rectangle[] = [];
+  private difficultyLabels: Phaser.GameObjects.Text[] = [];
 
   // percent labels
   private sfxPercentText!: Phaser.GameObjects.Text;
@@ -71,16 +71,13 @@ export class SettingsPanel {
     );
 
     // SFX slider
-    this.buildSlider(cx, cy - 70, 'Громкость звуков', (v) => settings.setSfxVolume(v), 'sfx');
+    this.buildSlider(cx, cy - 60, 'Громкость звуков', (v) => settings.setSfxVolume(v), 'sfx');
 
     // Music slider
-    this.buildSlider(cx, cy - 10, 'Громкость музыки', (v) => settings.setMusicVolume(v), 'music');
+    this.buildSlider(cx, cy - 6, 'Громкость музыки', (v) => settings.setMusicVolume(v), 'music');
 
-    // Graphics quality
-    this.buildQualitySelector(cx, cy + 48);
-
-    // Difficulty
-    this.buildDifficultySelector(cx, cy + 108);
+    // Difficulty squares
+    this.buildDifficultySelector(cx, cy + 52);
 
     // Close button
     this.buildCloseButton(cx, cy + PANEL_H / 2 - 28);
@@ -96,7 +93,7 @@ export class SettingsPanel {
     onChange: (value: number) => void,
     key: 'sfx' | 'music'
   ): void {
-    const width = 320;
+    const width = 300;
     const height = 8;
     const knobRadius = 10;
 
@@ -185,80 +182,72 @@ export class SettingsPanel {
     trackBg.on('pointerdown', updatePercent);
   }
 
-  private buildQualitySelector(cx: number, cy: number): void {
-    this.buildToggleRow(cx, cy, 'Качество графики', [
-      { key: 'low' as const, label: 'Плохая' },
-      { key: 'medium' as const, label: 'Средняя' },
-      { key: 'high' as const, label: 'Крутая' },
-    ], (k) => settings.setGraphicsQuality(k), this.qualityBgs);
-  }
-
   private buildDifficultySelector(cx: number, cy: number): void {
-    this.buildToggleRow(cx, cy, 'Сложность', [
-      { key: 'easy' as const, label: 'Легко' },
-      { key: 'normal' as const, label: 'Средне' },
-      { key: 'hard' as const, label: 'Сложно' },
-    ], (k) => settings.setDifficulty(k), this.difficultyBgs);
-  }
-
-  private buildToggleRow<K extends string>(
-    cx: number,
-    cy: number,
-    label: string,
-    options: { key: K; label: string }[],
-    onSelect: (key: K) => void,
-    bgArray: Phaser.GameObjects.Rectangle[]
-  ): void {
     this.track(
       this.scene.add
-        .text(cx, cy - 18, label, {
+        .text(cx, cy - 34, 'Сложность', {
           ...TEXT_STYLE,
-          fontSize: '13px',
+          fontSize: '14px',
           color: UI_COLORS.mutedText,
         })
         .setOrigin(0.5)
         .setDepth(MODAL_DEPTH + 2)
     );
 
-    const btnW = 100;
-    const btnH = 34;
-    const gap = 10;
-    const totalW = options.length * btnW + (options.length - 1) * gap;
-    const startX = cx - totalW / 2 + btnW / 2;
+    const options: { key: GameSettings['difficulty']; color: number; label: string }[] = [
+      { key: 'easy', color: 0x6ee7b7, label: 'Легко' },
+      { key: 'normal', color: 0xfcd34d, label: 'Средне' },
+      { key: 'hard', color: 0xe11d48, label: 'Сложно' },
+    ];
+
+    const size = 40;
+    const gap = 28;
+    const totalW = options.length * size + (options.length - 1) * gap;
+    const startX = cx - totalW / 2 + size / 2;
 
     options.forEach((opt, i) => {
-      const bx = startX + i * (btnW + gap);
+      const bx = startX + i * (size + gap);
+
+      // colored square
       const bg = this.scene.add
-        .rectangle(bx, cy + 8, btnW, btnH, 0x1b2a3f, 0.98)
-        .setStrokeStyle(1.5, UI_COLORS.borderMuted)
+        .rectangle(bx, cy + 10, size, size, opt.color, 0.9)
+        .setStrokeStyle(2, 0xffffff, 0.35)
         .setDepth(MODAL_DEPTH + 2)
         .setInteractive({ useHandCursor: true });
       this.track(bg);
 
+      // label below
       const txt = this.scene.add
-        .text(bx, cy + 8, opt.label, {
+        .text(bx, cy + 40, opt.label, {
           ...TEXT_STYLE,
-          fontSize: '13px',
-          color: '#dbe9f7',
+          fontSize: '12px',
+          color: '#b0c8db',
         })
         .setOrigin(0.5)
-        .setDepth(MODAL_DEPTH + 3);
+        .setDepth(MODAL_DEPTH + 2);
       this.track(txt);
 
-      bg.on('pointerover', () => bg.setStrokeStyle(2, UI_COLORS.selected));
-      bg.on('pointerout', () => this.syncFromSettings(settings.get()));
+      bg.on('pointerover', () => {
+        this.scene.tweens.add({ targets: bg, scaleX: 1.15, scaleY: 1.15, duration: 100, ease: 'Quad.easeOut' });
+        bg.setStrokeStyle(3, 0xffffff, 1);
+      });
+      bg.on('pointerout', () => {
+        this.scene.tweens.add({ targets: bg, scaleX: 1, scaleY: 1, duration: 100, ease: 'Quad.easeOut' });
+        this.syncFromSettings(settings.get());
+      });
       bg.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, e: Phaser.Types.Input.EventData) => {
         e.stopPropagation();
-        onSelect(opt.key);
+        settings.setDifficulty(opt.key);
       });
 
-      bgArray.push(bg);
+      this.difficultyBgs.push(bg);
+      this.difficultyLabels.push(txt);
     });
   }
 
   private buildCloseButton(cx: number, cy: number): void {
     const bg = this.scene.add
-      .rectangle(cx, cy, 160, 38, 0x142742, 0.96)
+      .rectangle(cx, cy, 140, 34, 0x142742, 0.96)
       .setStrokeStyle(2, 0x66dfff, 0.62)
       .setDepth(MODAL_DEPTH + 2)
       .setInteractive({ useHandCursor: true });
@@ -267,7 +256,7 @@ export class SettingsPanel {
     const txt = this.scene.add
       .text(cx, cy, 'ЗАКРЫТЬ', {
         ...TEXT_STYLE,
-        fontSize: '15px',
+        fontSize: '14px',
         fontStyle: 'bold',
         color: '#e9fbff',
       })
@@ -293,7 +282,7 @@ export class SettingsPanel {
   private syncFromSettings(s: GameSettings): void {
     // sfx slider
     if (this.sfxKnob && this.sfxFill) {
-      const width = 320;
+      const width = 300;
       const cx = this.scene.scale.width / 2;
       const trackMin = cx - width / 2;
       this.sfxKnob.x = trackMin + width * s.sfxVolume;
@@ -302,31 +291,22 @@ export class SettingsPanel {
     }
     // music slider
     if (this.musicKnob && this.musicFill) {
-      const width = 320;
+      const width = 300;
       const cx = this.scene.scale.width / 2;
       const trackMin = cx - width / 2;
       this.musicKnob.x = trackMin + width * s.musicVolume;
       this.musicFill.width = width * s.musicVolume;
       this.musicPercentText?.setText(`${Math.round(s.musicVolume * 100)}%`);
     }
-    // quality highlight
-    const qualities: GameSettings['graphicsQuality'][] = ['low', 'medium', 'high'];
-    for (let i = 0; i < this.qualityBgs.length; i++) {
-      const bg = this.qualityBgs[i];
-      if (qualities[i] === s.graphicsQuality) {
-        bg.setFillStyle(0x1d3558, 1).setStrokeStyle(2, UI_COLORS.selected);
-      } else {
-        bg.setFillStyle(0x1b2a3f, 0.98).setStrokeStyle(1.5, UI_COLORS.borderMuted);
-      }
-    }
     // difficulty highlight
     const difficulties: GameSettings['difficulty'][] = ['easy', 'normal', 'hard'];
+    const colors = [0x6ee7b7, 0xfcd34d, 0xe11d48];
     for (let i = 0; i < this.difficultyBgs.length; i++) {
       const bg = this.difficultyBgs[i];
       if (difficulties[i] === s.difficulty) {
-        bg.setFillStyle(0x1d3558, 1).setStrokeStyle(2, UI_COLORS.selected);
+        bg.setFillStyle(colors[i], 1).setStrokeStyle(2, 0xffffff, 1).setAlpha(1);
       } else {
-        bg.setFillStyle(0x1b2a3f, 0.98).setStrokeStyle(1.5, UI_COLORS.borderMuted);
+        bg.setFillStyle(colors[i], 0.5).setStrokeStyle(2, 0xffffff, 0.2).setAlpha(0.7);
       }
     }
   }
@@ -335,6 +315,10 @@ export class SettingsPanel {
     this.unsubscribe?.();
     for (const obj of this.objects) obj.destroy();
     this.objects.length = 0;
+  }
+
+  public getObjects(): Phaser.GameObjects.GameObject[] {
+    return this.objects;
   }
 
   private track<T extends Phaser.GameObjects.GameObject>(obj: T): T {

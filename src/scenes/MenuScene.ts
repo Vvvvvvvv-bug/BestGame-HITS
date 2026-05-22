@@ -133,15 +133,6 @@ export default class MenuScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(10);
 
-    this.add
-      .text(this.centerX, this.centerY - 80, 'Tower Defense // Survival Build', {
-        fontSize: '24px',
-        color: '#8edbf8',
-        fontFamily: 'Trebuchet MS, Verdana, sans-serif',
-      })
-      .setOrigin(0.5)
-      .setDepth(10);
-
     this.hint = this.add
       .text(this.centerX, this.centerY + 215, 'Подсказка: строй буровые и турели до начала волны', {
         fontSize: '18px',
