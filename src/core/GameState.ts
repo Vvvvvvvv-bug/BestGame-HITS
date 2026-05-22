@@ -19,6 +19,7 @@ export class GameState {
   public turretsBuilt = 0;
   public unlockedTurretLevel = 1;
   public freezeTurretUnlocked = false;
+  public turretUpgrades = new Set<string>();
 
   constructor() {
     eventBus.on('resource-mined', (payload) => {
@@ -75,14 +76,54 @@ export class GameState {
     this.turretsBuilt++;
   }
 
+  public buyTurretUpgrade(id: string, cost: number): boolean {
+    if (this.turretUpgrades.has(id)) return false;
+    if (this.resources.gradePoint < cost) return false;
+    this.resources.gradePoint -= cost;
+    this.turretUpgrades.add(id);
+    return true;
+  }
+
+  public getTurretDamageMult(): number {
+    let m = 1;
+    if (this.turretUpgrades.has('dmg_1')) m += 0.15;
+    if (this.turretUpgrades.has('dmg_2')) m += 0.15;
+    return m;
+  }
+
+  public getTurretCritChance(): number {
+    return this.turretUpgrades.has('dmg_3') ? 0.15 : 0;
+  }
+
+  public getTurretRangeMult(): number {
+    let m = 1;
+    if (this.turretUpgrades.has('rng_1')) m += 0.20;
+    if (this.turretUpgrades.has('rng_2')) m += 0.20;
+    return m;
+  }
+
+  public getTurretFireRateMult(): number {
+    let m = 1;
+    if (this.turretUpgrades.has('fr_1')) m += 0.15;
+    if (this.turretUpgrades.has('fr_2')) m += 0.15;
+    return m;
+  }
+
+  public getTurretHealthMult(): number {
+    let m = 1;
+    if (this.turretUpgrades.has('hp_1')) m += 0.25;
+    if (this.turretUpgrades.has('hp_2')) m += 0.25;
+    return m;
+  }
+
   public unlockTurret(level: number): boolean {
     if (level < 2 || level > 3) return false;
     if (level !== this.unlockedTurretLevel + 1) return false;
 
     const cost = this.getTurretUnlockCost(level);
-    if (this.resources.iron < cost) return false;
+    if (this.resources.gradePoint < cost) return false;
 
-    this.resources.iron -= cost;
+    this.resources.gradePoint -= cost;
     this.unlockedTurretLevel = level;
     return true;
   }
@@ -90,9 +131,9 @@ export class GameState {
   public unlockFreezeTurret(): boolean {
     if (this.freezeTurretUnlocked) return false;
     const cost = this.getFreezeTurretUnlockCost();
-    if (this.resources.iron < cost) return false;
+    if (this.resources.gradePoint < cost) return false;
 
-    this.resources.iron -= cost;
+    this.resources.gradePoint -= cost;
     this.freezeTurretUnlocked = true;
     return true;
   }

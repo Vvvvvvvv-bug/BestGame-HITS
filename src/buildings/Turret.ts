@@ -2,6 +2,7 @@
 import { Enemy } from '../enemies/Enemy';
 import type { Attackable } from '../core/Attackable';
 import { playSfx } from '../audio/Sfx';
+import { GameState } from '../core/GameState';
 
 export class Turret implements Attackable {
   public sprite: Phaser.GameObjects.Sprite;
@@ -9,20 +10,22 @@ export class Turret implements Attackable {
   private readonly type: TurretType;
   private readonly stats: (typeof TURRET_CONFIGS)[TurretType];
   private readonly scene: Phaser.Scene;
+  private readonly gameState: GameState;
 
   healthPoints: number;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, type: TurretType) {
+  constructor(scene: Phaser.Scene, x: number, y: number, type: TurretType, gameState: GameState) {
     this.scene = scene;
     this.type = type;
     this.stats = TURRET_CONFIGS[type];
+    this.gameState = gameState;
 
     const texture = this.type === 'freeze' ? 'turret-freeze' : `turret-${this.stats.level}`;
     this.sprite = scene.add.sprite(x, y, texture);
     this.sprite.setOrigin(0.5, 0.5);
     this.sprite.setDepth(24);
     this.sprite.setDisplaySize(32, 32);
-    this.healthPoints = 200;
+    this.healthPoints = Math.round(200 * gameState.getTurretHealthMult());
   }
 
   public update(delta: number, enemies: Set<Enemy>): void {
@@ -34,14 +37,20 @@ export class Turret implements Attackable {
     this.sprite.setRotation(angle);
 
     if (this.cooldown > 0) return;
-    this.cooldown = 1000 / this.stats.fireRate;
+    const fireRate = this.stats.fireRate * this.gameState.getTurretFireRateMult();
+    this.cooldown = 1000 / fireRate;
 
     if (this.type === 'freeze') {
-      const freezePerShot = 1000 / this.stats.fireRate;
+      const freezePerShot = 1000 / fireRate;
       target.applyFreezeCharge(freezePerShot);
     }
 
-    const dead = target.takeDamage(this.stats.damage);
+    let damage = this.stats.damage * this.gameState.getTurretDamageMult();
+    if (Math.random() < this.gameState.getTurretCritChance()) {
+      damage *= 2;
+    }
+
+    const dead = target.takeDamage(Math.round(damage));
     this.drawShot(target);
     playSfx(this.scene, 'turret-shot');
 
@@ -61,8 +70,9 @@ export class Turret implements Attackable {
   }
 
   private findTarget(enemies: Set<Enemy>): Enemy | null {
+    const range = this.stats.range * this.gameState.getTurretRangeMult();
     let bestTarget: Enemy | null = null;
-    let bestDistance: number = this.stats.range;
+    let bestDistance: number = range;
 
     for (const enemy of enemies) {
       const distance = Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, enemy.sprite.x, enemy.sprite.y);

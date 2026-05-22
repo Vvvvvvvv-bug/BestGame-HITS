@@ -20,6 +20,9 @@ import { BuildingManager } from './core/BuildingManager';
 import { CombatManager } from './core/CombatManager';
 import { playSfx } from './audio/Sfx';
 import { Airdrop } from './airdrops/Airdrop';
+import { Zealot } from './enemies/Zealot';
+import { QuizModal } from './ui/QuizModal';
+import { pickRandomQuestion } from './quiz/questions';
 export default class MainScene extends Phaser.Scene {
   private readonly CELL_SIZE = 32;
   private readonly LEFT_PANEL_WIDTH = 224;
@@ -34,6 +37,8 @@ export default class MainScene extends Phaser.Scene {
   private combatManager!: CombatManager;
   private enemySpawner!: EnemySpawner;
   private airdrops: Set<Airdrop> = new Set();
+  private activeQuiz?: QuizModal;
+  private readonly AIRDROP_QUIZ_REWARD = 1; // очков исследования за верный ответ
   private player!: Player;
   private playerHealthFill!: Phaser.GameObjects.Rectangle;
   private playerHealthText!: Phaser.GameObjects.Text;
@@ -64,6 +69,7 @@ export default class MainScene extends Phaser.Scene {
   private turretSelector!: TurretSelector; 
   private skipPhaseButtonBg!: Phaser.GameObjects.Rectangle;
   private skipPhaseButtonLabel!: Phaser.GameObjects.Text;
+  private spawnBossButtonBg!: Phaser.GameObjects.Rectangle;
 
   public gameState: GameState = new GameState();
   private selectedType: string = 'drill';
@@ -113,6 +119,16 @@ export default class MainScene extends Phaser.Scene {
     this.load.image('brute_attack_1', 'ants_assets/ants_sprite_sheet/10/attack/ant_attack_1.png');
     this.load.image('brute_attack_2', 'ants_assets/ants_sprite_sheet/10/attack/ant_attack_2.png');
     this.load.image('brute_attack_3', 'ants_assets/ants_sprite_sheet/10/attack/ant_attack_3.png');
+    this.load.image('boss_idle_1', 'ants_assets/ants_sprite_sheet/9/idle/ant_idle_1.png');
+    this.load.image('boss_idle_2', 'ants_assets/ants_sprite_sheet/9/idle/ant_idle_2.png');
+    this.load.image('boss_idle_3', 'ants_assets/ants_sprite_sheet/9/idle/ant_idle_3.png');
+    this.load.image('boss_idle_4', 'ants_assets/ants_sprite_sheet/9/idle/ant_idle_4.png');
+    this.load.image('boss_walk_1', 'ants_assets/ants_sprite_sheet/9/walk/ant_walk_1.png');
+    this.load.image('boss_walk_2', 'ants_assets/ants_sprite_sheet/9/walk/ant_walk_2.png');
+    this.load.image('boss_walk_3', 'ants_assets/ants_sprite_sheet/9/walk/ant_walk_3.png');
+    this.load.image('boss_attack_1', 'ants_assets/ants_sprite_sheet/9/attack/ant_attack_1.png');
+    this.load.image('boss_attack_2', 'ants_assets/ants_sprite_sheet/9/attack/ant_attack_2.png');
+    this.load.image('boss_attack_3', 'ants_assets/ants_sprite_sheet/9/attack/ant_attack_3.png');
     this.load.svg('turret-1', 'src/assets/turret-1.svg', { width: 96, height: 96 });
     this.load.svg('turret-2', 'src/assets/turret-2.svg', { width: 96, height: 96 });
     this.load.svg('turret-3', 'src/assets/turret-3.svg', { width: 96, height: 96 });
@@ -162,6 +178,7 @@ export default class MainScene extends Phaser.Scene {
       this.selectingBomb = false;
     });
     this.createSkipPhaseButton();
+    this.createSpawnBossDebugButton();
 
     this.waveUpdateHandler = (data) => {
       if (data.phase === 'victory') {
@@ -175,7 +192,7 @@ export default class MainScene extends Phaser.Scene {
       this.currentPhase = data.phase;
 
       if (data.phase === 'wave' && previousPhase !== 'wave') {
-        this.enemySpawner.startWave(data.enemiesInWave, data.waveDuration);
+        this.enemySpawner.startWave(data.enemiesInWave, data.waveDuration, data.waveNumber);
         this.emitEnemiesRemainingUpdate();
         playSfx(this, 'phase-wave');
       } else if (data.phase !== 'wave' && previousPhase === 'wave') {
@@ -194,6 +211,8 @@ export default class MainScene extends Phaser.Scene {
       this.scale.off('resize', this.onResize);
       for (const airdrop of this.airdrops) airdrop.destroy();
       this.airdrops.clear();
+      this.activeQuiz?.destroy();
+      this.activeQuiz = undefined;
     });
 
     // Должно идти последним: все HUD-объекты уже созданы.
@@ -255,6 +274,35 @@ export default class MainScene extends Phaser.Scene {
     this.skipPhaseButtonLabel.setColor(UI_COLORS.mutedText);
   }
 
+  private createSpawnBossDebugButton(): void {
+    const buttonX = this.LEFT_PANEL_WIDTH / 2;
+    const buttonY = this.scale.height - 82;
+
+    this.spawnBossButtonBg = this.add.rectangle(buttonX, buttonY, 188, 32, 0x2a1a24, 0.96)
+      .setStrokeStyle(1, 0xff6b7d, 0.95)
+      .setDepth(UI_DEPTH + 1)
+      .setInteractive({ useHandCursor: true });
+
+    this.add.text(buttonX, buttonY, 'СПАВН БОССА', {
+      fontFamily: '"Inter", "Segoe UI", Arial, sans-serif',
+      fontSize: '13px',
+      color: '#ffd4dc',
+      fontStyle: 'bold',
+      resolution: 2,
+    }).setOrigin(0.5).setDepth(UI_DEPTH + 2);
+
+    this.spawnBossButtonBg.on('pointerover', () => {
+      this.spawnBossButtonBg.setFillStyle(0x3a2230, 1);
+    });
+    this.spawnBossButtonBg.on('pointerout', () => {
+      this.spawnBossButtonBg.setFillStyle(0x2a1a24, 0.96);
+    });
+    this.spawnBossButtonBg.on('pointerdown', () => {
+      this.enemySpawner.spawnBossDebug();
+      playSfx(this, 'ui-click');
+    });
+  }
+
   // === RTS-камера =========================================================
 
   private setupCamera(): void {
@@ -292,9 +340,25 @@ export default class MainScene extends Phaser.Scene {
     this.events.on(Phaser.Scenes.Events.ADDED_TO_SCENE, this.onObjectAdded);
   }
 
-  private onObjectAdded = (go: Phaser.GameObjects.GameObject): void => {
+  public onObjectAdded = (go: Phaser.GameObjects.GameObject): void => {
     this.uiCamera?.ignore(go);
   };
+
+  /**
+   * Переносит объект(ы) на HUD-камеру: рисуются только на uiCamera (фикс к экрану,
+   * ввод 1:1), скрыты с мировой камеры. Для рантайм-оверлеев (викторина, древо апгрейдов),
+   * которые onObjectAdded по умолчанию отправляет на скроллящуюся мировую камеру.
+   */
+  public assignToHud(target: Phaser.GameObjects.GameObject | Phaser.GameObjects.GameObject[]): void {
+    const list = Array.isArray(target) ? target : [target];
+    for (const obj of list) {
+      (obj as unknown as { cameraFilter: number }).cameraFilter &= ~this.uiCamera.id; // показать на uiCamera
+      this.cameras.main.ignore(obj);                                                  // скрыть с мира
+      if (obj instanceof Phaser.GameObjects.Container) {
+        this.assignToHud(obj.list);
+      }
+    }
+  }
 
   private onResize = (size: Phaser.Structs.Size): void => {
     this.uiCamera?.setSize(size.width, size.height);
@@ -480,6 +544,11 @@ export default class MainScene extends Phaser.Scene {
   private handlePointerMove(pointer: Phaser.Input.Pointer): void {
     this.hasPointerMoved = true;
 
+    if (this.activeQuiz) {            // окно викторины открыто — мир не реагирует
+      this.ghost.setVisible(false);
+      return;
+    }
+
     // Перетаскивание карты средней кнопкой мыши (drag-pan, как в RTS).
     if (pointer.middleButtonDown()) {
       this.cameras.main.scrollX -= pointer.x - pointer.prevPosition.x;
@@ -506,6 +575,7 @@ export default class MainScene extends Phaser.Scene {
   }
 
   private handlePointerDown(pointer: Phaser.Input.Pointer): void {
+    if (this.activeQuiz) return;             // окно викторины перехватывает ввод
     if (pointer.button !== 0) return;        // только ЛКМ (средняя — для drag-pan)
     if (this.isPointerOverPanel(pointer)) return; // клики по HUD не строят сквозь панель
 
@@ -587,7 +657,7 @@ export default class MainScene extends Phaser.Scene {
     const worldX = this.getWorldXFromGrid(gridX);
     const worldY = gridY * this.CELL_SIZE + this.CELL_SIZE / 2;
     const turretType: TurretType = isFreeze ? 'freeze' : (`mk${level}` as TurretType);
-    this.buildingManager.addTurret(this.getGridKey(gridX, gridY), createTurret(this, worldX, worldY, turretType));
+    this.buildingManager.addTurret(this.getGridKey(gridX, gridY), createTurret(this, worldX, worldY, turretType, this.gameState));
     this.ghost.setFillStyle(this.GHOST_COLOR_BLOCKED, 0.4);
     playSfx(this, 'build');
   }
@@ -766,7 +836,7 @@ export default class MainScene extends Phaser.Scene {
 
   private scheduleNextAirdrop(): void {
     this.airdropSpawnTimer = 0;
-    this.nextAirdropSpawnDelay = Phaser.Math.Between(35000, 60000);
+    this.nextAirdropSpawnDelay = Phaser.Math.Between(15000, 25000);
   }
 
   private spawnAirdrop(): void {
@@ -780,7 +850,7 @@ export default class MainScene extends Phaser.Scene {
       worldX,
       worldY,
       this.AIRDROP_LURE_RADIUS_BLOCKS * this.CELL_SIZE,
-      (finishedAirdrop, completed) => this.finishAirdrop(finishedAirdrop, completed)
+      (drop) => this.openAirdropQuiz(drop)
     );
 
     this.airdrops.add(airdrop);
@@ -805,15 +875,45 @@ export default class MainScene extends Phaser.Scene {
     return null;
   }
 
-  private finishAirdrop(airdrop: Airdrop, completed: boolean): void {
+  private finishAirdrop(airdrop: Airdrop): void {
     this.clearAirdropTargets(airdrop);
     this.airdrops.delete(airdrop);
+    airdrop.destroy();
+  }
+
+  /** Клик по дропу: запускаем таймер-викторину. Дроп блокируется до ответа. */
+  private openAirdropQuiz(airdrop: Airdrop): void {
+    if (this.activeQuiz) return; // одно окно за раз
+    this.clearAirdropTargets(airdrop);
+
+    const question = pickRandomQuestion();
+    const modal = new QuizModal(this, question, (correct) => this.resolveAirdropQuiz(airdrop, correct));
+    this.assignToHud(modal.getObjects()); // окно рисует только uiCamera (фикс к экрану)
+
+    this.activeQuiz = modal;
+  }
+
+  /** Итог викторины: верно → очки исследования, неверно → муравей на месте дропа. */
+  private resolveAirdropQuiz(airdrop: Airdrop, correct: boolean): void {
+    this.activeQuiz?.destroy();
+    this.activeQuiz = undefined;
 
     const x = airdrop.sprite.x;
     const y = airdrop.sprite.y;
-    airdrop.destroy();
+    this.finishAirdrop(airdrop);
 
-    this.showFloatingText(x, y - 36, completed ? '+1 очко улучшения' : 'Аирдроп уничтожен');
+    if (this.gameOverShown || this.victoryShown) return;
+
+    if (correct) {
+      eventBus.emit('resource-mined', { type: 'gradePoint', amount: this.AIRDROP_QUIZ_REWARD });
+      this.showFloatingText(x, y - 36, `+${this.AIRDROP_QUIZ_REWARD} очк. исследования`);
+      playSfx(this, 'unlock');
+    } else {
+      const ant = new Zealot(this, x, y);
+      this.enemies.add(ant);
+      this.showFloatingText(x, y - 36, 'Неверно! Муравей!');
+      playSfx(this, 'ui-deny');
+    }
   }
 
   private clearAirdropTargets(airdrop: Airdrop): void {

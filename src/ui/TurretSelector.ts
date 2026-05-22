@@ -1,7 +1,10 @@
 ﻿import { GameState } from '../core/GameState';
 import type { TurretType } from '../core/BuildingConfigs';
+import { TURRET_UPGRADES } from '../core/BuildingConfigs';
+import type { TurretUpgradeDef } from '../core/BuildingConfigs';
 import { createHudPanel, TEXT_STYLE, UI_COLORS, UI_DEPTH } from './uiTheme';
 import { playSfx } from '../audio/Sfx';
+import MainScene from '../MainScene';
 
 type TurretItem = {
   type: TurretType;
@@ -172,13 +175,13 @@ export class TurretSelector {
       return;
     }
 
-    const panelX = this.scene.scale.width - 430;
-    const panelY = 140;
-    const bg = this.scene.add.rectangle(panelX, panelY, 260, 220, 0x0f1a2c, 0.96)
+    const panelX = this.scene.scale.width - 530;
+    const panelY = this.scene.scale.height / 2;
+    const bg = this.scene.add.rectangle(panelX, panelY, 264, 720, 0x0f1a2c, 0.96)
       .setStrokeStyle(2, UI_COLORS.border)
       .setDepth(UI_DEPTH + 10);
 
-    const title = this.scene.add.text(panelX, panelY - 92, 'ДРЕВО АПГРЕЙДОВ', {
+    const title = this.scene.add.text(panelX, panelY - 338, 'ДРЕВО АПГРЕЙДОВ', {
       ...TEXT_STYLE,
       fontSize: '14px',
       fontStyle: 'bold',
@@ -186,7 +189,8 @@ export class TurretSelector {
     }).setOrigin(0.5).setDepth(UI_DEPTH + 11);
 
     this.treePanel = this.scene.add.container(0, 0, [bg, title]).setDepth(UI_DEPTH + 10);
-    this.refreshTreePanel();
+
+    this.refreshTreePanel(); // здесь же узлы переносятся на HUD-камеру
   }
 
   private refreshTreePanel(): void {
@@ -195,22 +199,92 @@ export class TurretSelector {
     const old = this.treePanel.list.slice(2);
     old.forEach((obj) => obj.destroy());
 
-    const rootX = this.scene.scale.width - 430;
-    const startY = 90;
+    const startX = this.scene.scale.width - 530;
+    const startY = this.scene.scale.height / 2 - 300;
+    const rowH = 40;
+    let cy = startY;
 
-    this.addUpgradeNode(rootX, startY, 'Mk II', this.gameState.getTurretUnlockCost(2), this.gameState.unlockedTurretLevel >= 2, () => this.gameState.unlockTurret(2));
-    this.addUpgradeNode(rootX, startY + 58, 'Mk III', this.gameState.getTurretUnlockCost(3), this.gameState.unlockedTurretLevel >= 3, () => this.gameState.unlockTurret(3));
-    this.addUpgradeNode(rootX, startY + 116, 'Cryo', this.gameState.getFreezeTurretUnlockCost(), this.gameState.freezeTurretUnlocked, () => this.gameState.unlockFreezeTurret());
+    const branches = [
+      { label: 'УРОН', upgrades: TURRET_UPGRADES.filter((u) => u.branch === 'damage') },
+      { label: 'ДАЛЬНОСТЬ', upgrades: TURRET_UPGRADES.filter((u) => u.branch === 'range') },
+      { label: 'СКОРОСТЬ', upgrades: TURRET_UPGRADES.filter((u) => u.branch === 'fireRate') },
+      { label: 'БРОНЯ', upgrades: TURRET_UPGRADES.filter((u) => u.branch === 'health') },
+    ];
 
-    const hint = this.scene.add.text(rootX, startY + 170, 'Открывай тут, строй в панели турелей', {
-      ...TEXT_STYLE,
-      fontSize: '10px',
-      color: '#91a8bf',
-    }).setOrigin(0.5).setDepth(UI_DEPTH + 11);
-    this.treePanel.add(hint);
+    for (const branch of branches) {
+      this.addBranchLabel(startX, cy, branch.label);
+      cy += 28; // зазор лейбл→узел: узел высотой 36 (±18) иначе налезает на заголовок
+      for (const upgrade of branch.upgrades) {
+        this.addUpgradeNode(startX, cy, upgrade);
+        cy += rowH;
+      }
+      cy += 8;
+    }
+
+    this.addBranchLabel(startX, cy, 'НОВЫЕ ТУРЕЛИ');
+    cy += 28;
+    this.addUnlockNode(startX, cy, 'Mk II', this.gameState.getTurretUnlockCost(2), this.gameState.unlockedTurretLevel >= 2, () => this.gameState.unlockTurret(2));
+    cy += rowH;
+    this.addUnlockNode(startX, cy, 'Mk III', this.gameState.getTurretUnlockCost(3), this.gameState.unlockedTurretLevel >= 3, () => this.gameState.unlockTurret(3));
+    cy += rowH;
+    this.addUnlockNode(startX, cy, 'Cryo', this.gameState.getFreezeTurretUnlockCost(), this.gameState.freezeTurretUnlocked, () => this.gameState.unlockFreezeTurret());
+
+    // Узлы создаются в рантайме => onObjectAdded шлёт их на скроллящуюся мировую камеру
+    // (узлы «разъезжаются» от панели). Переносим всё окно на HUD-камеру — прибито к экрану.
+    (this.scene as MainScene).assignToHud(this.treePanel);
   }
 
-  private addUpgradeNode(
+  private addBranchLabel(x: number, y: number, text: string): void {
+    if (!this.treePanel) return;
+    const label = this.scene.add.text(x - 100, y, text, {
+      ...TEXT_STYLE,
+      fontSize: '10px',
+      fontStyle: 'bold',
+      color: '#7aa8c7',
+    }).setOrigin(0, 0.5).setDepth(UI_DEPTH + 12);
+    this.treePanel.add(label);
+  }
+
+  private addUpgradeNode(x: number, y: number, upgrade: TurretUpgradeDef): void {
+    if (!this.treePanel) return;
+
+    const unlocked = this.gameState.turretUpgrades.has(upgrade.id);
+    const available = !upgrade.requires || this.gameState.turretUpgrades.has(upgrade.requires);
+
+    const nodeBg = this.scene.add.rectangle(x, y, 228, 36, unlocked ? 0x1f3a2a : available ? 0x1b2432 : 0x131a24, 0.98)
+      .setStrokeStyle(1, unlocked ? 0x58d88f : available ? UI_COLORS.borderMuted : 0x0f141c)
+      .setDepth(UI_DEPTH + 11);
+
+    const title = this.scene.add.text(x - 100, y - 7, upgrade.label, {
+      ...TEXT_STYLE,
+      fontSize: '11px',
+      fontStyle: 'bold',
+      color: unlocked ? '#dff3ff' : (available ? '#dbe9f7' : '#556070'),
+    }).setOrigin(0, 0.5).setDepth(UI_DEPTH + 12);
+
+    const status = this.scene.add.text(x - 100, y + 9, unlocked ? 'ИЗУЧЕНО' : (available ? `${upgrade.cost} ОИ` : '─'), {
+      ...TEXT_STYLE,
+      fontSize: '9px',
+      color: unlocked ? '#7ae7b6' : (available ? (this.gameState.resources.gradePoint >= upgrade.cost ? '#ffd166' : '#ff6b7d') : '#3a4a5a'),
+    }).setOrigin(0, 0.5).setDepth(UI_DEPTH + 12);
+
+    this.treePanel.add([nodeBg, title, status]);
+
+    if (unlocked || !available) return;
+
+    nodeBg.setInteractive({ useHandCursor: true });
+    nodeBg.on('pointerdown', () => {
+      if (!this.gameState.buyTurretUpgrade(upgrade.id, upgrade.cost)) {
+        playSfx(this.scene, 'ui-deny');
+        this.update();
+        return;
+      }
+      playSfx(this.scene, 'unlock');
+      this.update();
+    });
+  }
+
+  private addUnlockNode(
     x: number,
     y: number,
     label: string,
@@ -220,21 +294,21 @@ export class TurretSelector {
   ): void {
     if (!this.treePanel) return;
 
-    const nodeBg = this.scene.add.rectangle(x, y, 228, 44, unlocked ? 0x1f3a2a : 0x1b2432, 0.98)
+    const nodeBg = this.scene.add.rectangle(x, y, 228, 36, unlocked ? 0x1f3a2a : 0x1b2432, 0.98)
       .setStrokeStyle(1, unlocked ? 0x58d88f : UI_COLORS.borderMuted)
       .setDepth(UI_DEPTH + 11);
 
-    const title = this.scene.add.text(x - 78, y - 8, label, {
+    const title = this.scene.add.text(x - 100, y - 7, label, {
       ...TEXT_STYLE,
-      fontSize: '12px',
+      fontSize: '11px',
       fontStyle: 'bold',
       color: '#dff3ff',
     }).setOrigin(0, 0.5).setDepth(UI_DEPTH + 12);
 
-    const status = this.scene.add.text(x - 78, y + 10, unlocked ? 'ОТКРЫТО' : `${cost} Fe`, {
+    const status = this.scene.add.text(x - 100, y + 9, unlocked ? 'ОТКРЫТО' : `${cost} ОИ`, {
       ...TEXT_STYLE,
-      fontSize: '10px',
-      color: unlocked ? '#7ae7b6' : (this.gameState.resources.iron >= cost ? '#ffd166' : '#ff6b7d'),
+      fontSize: '9px',
+      color: unlocked ? '#7ae7b6' : (this.gameState.resources.gradePoint >= cost ? '#ffd166' : '#ff6b7d'),
     }).setOrigin(0, 0.5).setDepth(UI_DEPTH + 12);
 
     this.treePanel.add([nodeBg, title, status]);
