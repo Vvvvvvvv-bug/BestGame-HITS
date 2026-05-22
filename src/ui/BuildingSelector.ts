@@ -16,11 +16,12 @@ export class BuildingSelector {
   ) {
     this.gameState = gameState;
 
-    const items = [
-      { id: 'drill', name: 'БУР', isBomb: false, texture: 'drill' },
-      { id: 'wall', name: 'СТЕНА', isBomb: false, texture: 'wall' },
-      { id: 'bomb', name: 'БОМБА', isBomb: true, texture: 'bomb' }
-    ];
+    const items = Object.entries(BUILDING_CONFIGS).map(([id, config]) => ({
+      id,
+      name: config.name,
+      isBomb: id === 'bomb',
+      texture: id,
+    }));
 
     const centerX = scene.scale.width - this.PANEL_WIDTH / 2;
     const startY = 92;

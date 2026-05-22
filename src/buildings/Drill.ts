@@ -7,9 +7,9 @@ export class Drill extends Building {
   private timer: number = 0;
   private resourceType: 'iron' | 'stone' | undefined;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, resourceType?: 'iron' | 'stone') {
+  constructor(scene: Phaser.Scene, x: number, y: number, resourceType?: string) {
     super(scene, x, y, 'drill', BUILDING_CONFIGS.drill.healthPoints);
-    this.resourceType = resourceType;
+    this.resourceType = resourceType as 'iron' | 'stone' | undefined;
   }
 
   public update(delta: number): void {

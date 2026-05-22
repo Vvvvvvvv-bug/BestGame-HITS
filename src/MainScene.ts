@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import { GameState } from './core/GameState';
-import { Building } from './buildings/Building';
 import { ResourcePanel } from './ui/ResourcePanel';
 import { BuildingSelector } from './ui/BuildingSelector';
 import { createBuilding } from './buildings/BuildingFactory';
@@ -11,12 +10,14 @@ import { EnemySpawner } from './enemies/EnemySpawner';
 import { eventBus } from './core/EventBus';
 import { Player } from './player/Player';
 import { BombSelector } from './ui/BombSelector';
-import { TurretSelector } from './ui/TurretSelector'; 
+import { TurretSelector } from './ui/TurretSelector';
 import { Bomb } from './buildings/Bomb';
 import { Turret } from './buildings/Turret';
 import { Drill } from './buildings/Drill';
 import { BUILDING_CONFIGS } from './core/BuildingConfigs';
 import { UI_COLORS, UI_DEPTH } from './ui/uiTheme';
+import { BuildingManager } from './core/BuildingManager';
+import { CombatManager } from './core/CombatManager';
 export default class MainScene extends Phaser.Scene {
   private readonly CELL_SIZE = 32;
   private readonly LEFT_PANEL_WIDTH = 224;
@@ -26,10 +27,9 @@ export default class MainScene extends Phaser.Scene {
   private readonly GHOST_COLOR_BLOCKED = 0xff0000;
 
   private ghost!: Phaser.GameObjects.Rectangle;
-  private buildings: Map<string, Building> = new Map();
-  private bombs: Map<string, Bomb> = new Map();
-  private turrets: Map<string, Turret> = new Map();
   private enemies: Set<Enemy> = new Set();
+  private buildingManager!: BuildingManager;
+  private combatManager!: CombatManager;
   private enemySpawner!: EnemySpawner;
   private player!: Player;
   private playerHealthFill!: Phaser.GameObjects.Rectangle;
@@ -97,6 +97,9 @@ export default class MainScene extends Phaser.Scene {
     this.player = new Player(this, centerX, centerY);
     this.setupPlayerHealthBar();
     
+    this.buildingManager = new BuildingManager();
+    this.combatManager = new CombatManager();
+
     this.resourcePanel = new ResourcePanel(this);
     this.wavePanel = new WavePanel(this);
     this.waveManager = new WaveManager();
@@ -326,7 +329,7 @@ export default class MainScene extends Phaser.Scene {
     const worldY = gridY * this.CELL_SIZE + this.CELL_SIZE / 2;
 
     const building = createBuilding(this.selectedType, this, worldX, worldY, resourceToMine);
-    this.buildings.set(this.getGridKey(gridX, gridY), building);
+    this.buildingManager.addBuilding(this.getGridKey(gridX, gridY), building);
     if (this.selectedType === 'drill') this.gameState.recordDrillBuilt();
     this.ghost.setFillStyle(this.GHOST_COLOR_BLOCKED, 0.4);
   }
@@ -341,7 +344,7 @@ export default class MainScene extends Phaser.Scene {
 
     const worldX = this.getWorldXFromGrid(gridX);
     const worldY = gridY * this.CELL_SIZE + this.CELL_SIZE / 2;
-    this.turrets.set(this.getGridKey(gridX, gridY), new Turret(this, worldX, worldY, level));
+    this.buildingManager.addTurret(this.getGridKey(gridX, gridY), new Turret(this, worldX, worldY, level));
     this.ghost.setFillStyle(this.GHOST_COLOR_BLOCKED, 0.4);
   }
 
@@ -364,19 +367,14 @@ export default class MainScene extends Phaser.Scene {
           enemy.destroy();
         }
       }
-      for (const [key, b] of this.bombs.entries()) {
-        if (b === activatedBomb) {
-          this.bombs.delete(key);
-          break;
-        }
-      }
+      this.buildingManager.removeBomb(activatedBomb);
     });
-    this.bombs.set(this.getGridKey(gridX, gridY), bomb);
+    this.buildingManager.addBomb(this.getGridKey(gridX, gridY), bomb);
   }
 
   private isOccupied(gridX: number, gridY: number): boolean {
     const key = this.getGridKey(gridX, gridY);
-    return this.buildings.has(key) || this.bombs.has(key) || this.turrets.has(key) || this.isPlayerCell(gridX, gridY);
+    return this.buildingManager.isOccupied(key) || this.isPlayerCell(gridX, gridY);
   }
 
   private isPlayerCell(gridX: number, gridY: number): boolean {
@@ -431,59 +429,30 @@ export default class MainScene extends Phaser.Scene {
     this.wavePanel.updateProgress(this.waveManager.getPhaseProgress());
     this.enemySpawner.update(delta);
 
-    for (const building of this.buildings.values()) {
+    for (const building of this.buildingManager.getBuildings()) {
       if (building instanceof Drill) {
         building.allowGain = this.currentPhase !== 'wave';
       }
-      building.update(delta);
     }
 
-    for (const turret of this.turrets.values()) {
-      turret.update(delta, this.enemies);
-    }
+    this.buildingManager.update(delta, this.enemies);
 
     this.player.update(delta);
-    
+
     this.bombSelector.updateAffordability();
 
-    for (const bomb of this.bombs.values()) {
-      bomb.update(delta);
-    }
-
-    const deadEnemies: Enemy[] = [];
-    for (const enemy of this.enemies) {
-      if (enemy['targetX'] === null || enemy['targetY'] === null || !enemy['attackTarget']) {
-        const nearestBuilding = this.findNearestBuilding(enemy);
-        const nearestTarget = this.findNearestTarget(enemy, nearestBuilding);
-        
-        if (nearestTarget) {
-          if (nearestTarget === this.player) {
-            enemy.setTarget(this.player.sprite.x, this.player.sprite.y);
-            enemy.setAttackTarget(this.player);
-          } else {
-            enemy.setTarget((nearestTarget as Building).sprite.x, (nearestTarget as Building).sprite.y);
-            enemy.setAttackTarget(nearestTarget);
-          }
-        }
-      }
-      
-      enemy.update(delta);
-      if (enemy.healthPoints <= 0) deadEnemies.push(enemy);
-    }
-
+    const deadEnemies = this.combatManager.update(
+      delta,
+      this.enemies,
+      this.buildingManager.getAttackables(),
+      this.player
+    );
     for (const enemy of deadEnemies) {
       this.enemies.delete(enemy);
       enemy.destroy();
     }
-    
-    const destroyedBuildings: string[] = [];
-    for (const [key, building] of this.buildings.entries()) {
-      if (building.healthPoints <= 0) {
-        destroyedBuildings.push(key);
-        building.destroy();
-      }
-    }
-    for (const key of destroyedBuildings) this.buildings.delete(key);
+
+    this.buildingManager.removeDestroyed();
 
     this.updatePlayerHealthBar();
     if (this.player.healthPoints <= 0) {
@@ -511,33 +480,6 @@ export default class MainScene extends Phaser.Scene {
     if (this.enemySpawner.isSpawning() || this.enemies.size > 0) return;
 
     this.waveManager.completeWave();
-  }
-
-  private findNearestTarget(enemy: Enemy, nearestBuilding: Building | null): Building | Player | null {
-    const playerDist = this.getDistance(enemy.sprite.x, enemy.sprite.y, this.player.sprite.x, this.player.sprite.y);
-    const buildingDist = nearestBuilding ? 
-      this.getDistance(enemy.sprite.x, enemy.sprite.y, nearestBuilding.sprite.x, nearestBuilding.sprite.y) : 
-      Infinity;
-
-    return playerDist < buildingDist ? this.player : nearestBuilding;
-  }
-
-  private getDistance(x1: number, y1: number, x2: number, y2: number): number {
-    return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
-  }
-
-  private findNearestBuilding(enemy: Enemy): Building | null {
-    let nearest: Building | null = null;
-    let minDistance = Infinity;
-
-    for (const building of this.buildings.values()) {
-      const distance = this.getDistance(enemy.sprite.x, enemy.sprite.y, building.sprite.x, building.sprite.y);
-      if (distance < minDistance) {
-        minDistance = distance;
-        nearest = building;
-      }
-    }
-    return nearest;
   }
 
   private showVictoryScreen(): void {

@@ -1,11 +1,14 @@
 import { TURRET_CONFIGS } from '../core/BuildingConfigs';
 import { Enemy } from '../enemies/Enemy';
+import type { Attackable } from '../core/Attackable';
 
-export class Turret {
+export class Turret implements Attackable {
   public sprite: Phaser.GameObjects.Sprite;
   private cooldown = 0;
   private readonly stats: typeof TURRET_CONFIGS[number];
   private readonly scene: Phaser.Scene;
+
+  healthPoints: number;
 
   constructor(scene: Phaser.Scene, x: number, y: number, level: number) {
     this.scene = scene;
@@ -14,6 +17,7 @@ export class Turret {
     this.sprite.setOrigin(0.5, 0.5);
     this.sprite.setDepth(24);
     this.sprite.setDisplaySize(32, 32);
+    this.healthPoints = 200;
   }
 
   public update(delta: number, enemies: Set<Enemy>): void {
@@ -33,6 +37,11 @@ export class Turret {
       enemies.delete(target);
       target.destroy();
     }
+  }
+
+  takeDamage(amount: number): boolean {
+    this.healthPoints -= amount;
+    return this.healthPoints <= 0;
   }
 
   public destroy(): void {

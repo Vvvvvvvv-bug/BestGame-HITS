@@ -1,13 +1,15 @@
 import { EXPLOSIVE_CONFIG } from '../core/BuildingConfigs';
 import { Enemy } from '../enemies/Enemy';
+import type { Attackable } from '../core/Attackable';
 
-export class Bomb {
+export class Bomb implements Attackable {
   sprite: Phaser.GameObjects.Sprite;
   x: number;
   y: number;
   scene: Phaser.Scene;
   lastDetonatedTime: number = 0;
   canDetonate: boolean = true;
+  healthPoints: number = 1;
   private onDetonate: (bomb: Bomb) => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number, onDetonate: (bomb: Bomb) => void) {
@@ -88,6 +90,11 @@ export class Bomb {
         this.sprite.setAlpha(0.5 + 0.5 * (this.lastDetonatedTime / EXPLOSIVE_CONFIG.cooldown));
       }
     }
+  }
+
+  takeDamage(amount: number): boolean {
+    this.healthPoints -= amount;
+    return this.healthPoints <= 0;
   }
 
   destroy(): void {

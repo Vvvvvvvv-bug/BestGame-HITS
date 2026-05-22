@@ -1,19 +1,20 @@
-import type { Building } from "./Building";
-import { Drill } from "./Drill";
-import { Wall } from "./Wall";
+import type { Building } from './Building';
+import { Drill } from './Drill';
+import { Wall } from './Wall';
+
+const REGISTRY: Record<string, new (scene: Phaser.Scene, x: number, y: number, resourceType?: string) => Building> = {
+  drill: Drill,
+  wall: Wall,
+};
 
 export function createBuilding(
-  type: string, 
-  scene: Phaser.Scene, 
-  x: number, 
-  y: number, 
-  resourceType?: 'iron' | 'stone'
+  type: string,
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  resourceType?: string
 ): Building {
-  if (type === 'drill') {
-    return new Drill(scene, x, y, resourceType || 'iron');
-  }
-  if (type === 'wall') {
-    return new Wall(scene, x, y);
-  }
-  throw new Error(`Unknown type: ${type}`);
+  const Ctor = REGISTRY[type];
+  if (!Ctor) throw new Error(`Unknown building type: ${type}`);
+  return new Ctor(scene, x, y, resourceType);
 }

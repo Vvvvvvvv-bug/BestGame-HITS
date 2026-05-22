@@ -1,8 +1,9 @@
 import { Weapon, WEAPON_CONFIGS } from './Weapon';
 import type { WeaponType } from './Weapon';
 import { Enemy } from '../enemies/Enemy';
+import type { Attackable } from '../core/Attackable';
 
-export class Player {
+export class Player implements Attackable {
   sprite: Phaser.GameObjects.Sprite;
   private base: Phaser.GameObjects.Rectangle;
   healthPoints: number = 100;

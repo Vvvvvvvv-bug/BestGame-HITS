@@ -1,4 +1,6 @@
-export abstract class Building {
+import type { Attackable } from '../core/Attackable';
+
+export abstract class Building implements Attackable {
   sprite: Phaser.GameObjects.Sprite;
   gridX: number;
   gridY: number;
@@ -27,7 +29,7 @@ export abstract class Building {
   abstract update(delta: number): void;
   abstract onPlace(): void;
 
-  public takeDamage(amount: number): boolean {
+  takeDamage(amount: number): boolean {
     this.healthPoints -= amount;
     return this.healthPoints <= 0;
   }

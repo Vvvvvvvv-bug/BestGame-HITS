@@ -1,3 +1,5 @@
+import type { Attackable } from '../core/Attackable';
+
 export abstract class Enemy {
   sprite: Phaser.GameObjects.Sprite;
   gridX: number;
@@ -10,7 +12,7 @@ export abstract class Enemy {
   protected targetX: number | null = null;
   protected targetY: number | null = null;
   protected scene: Phaser.Scene;
-  protected attackTarget: any = null;
+  protected attackTarget: Attackable | null = null;
   protected attackTimer: number = 0;
   protected attackCooldown: number = 1000; // атака раз в 1 сек
 
@@ -41,7 +43,7 @@ export abstract class Enemy {
     this.targetY = y;
   }
 
-  setAttackTarget(target: any): void {
+  setAttackTarget(target: Attackable): void {
     this.attackTarget = target;
   }
 
@@ -78,9 +80,7 @@ export abstract class Enemy {
 
   protected doAttack(): void {
     if (this.attackTarget && this.canAttack()) {
-      if (this.attackTarget.takeDamage) {
-        this.attackTarget.takeDamage(this.damage);
-      }
+      this.attackTarget.takeDamage(this.damage);
       this.attackTimer = 0;
 
       // Визуальный эффект атаки
