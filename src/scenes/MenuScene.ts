@@ -1,5 +1,6 @@
 ﻿import Phaser from 'phaser';
 import { playSfx } from '../audio/Sfx';
+import { SettingsPanel } from '../ui/SettingsPanel';
 
 export default class MenuScene extends Phaser.Scene {
   private centerX = 0;
@@ -11,6 +12,7 @@ export default class MenuScene extends Phaser.Scene {
 
   private title!: Phaser.GameObjects.Text;
   private hint!: Phaser.GameObjects.Text;
+  private settingsPanel?: SettingsPanel;
 
   // Фоновое «поле боя» (без звука)
   private ants: { sprite: Phaser.GameObjects.Sprite; frames: string[]; size: number; speed: number; frameTimer: number; frame: number; dying: boolean }[] = [];
@@ -58,6 +60,8 @@ export default class MenuScene extends Phaser.Scene {
     this.centerY = this.scale.height / 2;
 
     this.battleReady = false;
+    this.settingsPanel?.destroy();
+    this.settingsPanel = undefined;
     this.children.removeAll(true);
 
     this.createBackground();
@@ -154,7 +158,10 @@ export default class MenuScene extends Phaser.Scene {
     });
 
     this.createButton(this.centerX, this.centerY + 70, 340, 72, 'НАСТРОЙКИ', () => {
-      console.log('Настройки открываются');
+      if (this.settingsPanel) return;
+      this.settingsPanel = new SettingsPanel(this, () => {
+        this.settingsPanel = undefined;
+      });
     });
 
     this.createButton(this.centerX, this.centerY + 150, 340, 72, 'ВЫХОД', () => {

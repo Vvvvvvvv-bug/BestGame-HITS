@@ -1,4 +1,5 @@
 ﻿import Phaser from 'phaser';
+import { settings } from '../core/Settings';
 
 type SfxType =
   | 'ui-click'
@@ -30,13 +31,16 @@ function tone(
   const context = getContext(scene);
   if (!context) return;
 
+  const effectiveVolume = volume * settings.get().sfxVolume;
+  if (effectiveVolume < 0.0001) return;
+
   const now = context.currentTime;
   const osc = context.createOscillator();
   const gain = context.createGain();
   osc.type = type;
   osc.frequency.setValueAtTime(frequency, now);
   gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(volume, now + 0.01);
+  gain.gain.exponentialRampToValueAtTime(effectiveVolume, now + 0.01);
   gain.gain.exponentialRampToValueAtTime(0.0001, now + durationMs / 1000);
   osc.connect(gain);
   gain.connect(context.destination);
@@ -55,6 +59,9 @@ function sweep(
   const context = getContext(scene);
   if (!context) return;
 
+  const effectiveVolume = volume * settings.get().sfxVolume;
+  if (effectiveVolume < 0.0001) return;
+
   const now = context.currentTime;
   const osc = context.createOscillator();
   const gain = context.createGain();
@@ -64,7 +71,7 @@ function sweep(
   osc.frequency.exponentialRampToValueAtTime(endHz, now + durationMs / 1000);
 
   gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(volume, now + 0.006);
+  gain.gain.exponentialRampToValueAtTime(effectiveVolume, now + 0.006);
   gain.gain.exponentialRampToValueAtTime(0.0001, now + durationMs / 1000);
 
   osc.connect(gain);
@@ -116,7 +123,8 @@ export function createCryoBeam(scene: Phaser.Scene): CryoBeamSound {
       const now = context.currentTime;
       gain.gain.cancelScheduledValues(now);
       gain.gain.setValueAtTime(Math.max(0.0001, gain.gain.value), now);
-      gain.gain.exponentialRampToValueAtTime(a ? 0.01 : 0.0001, now + 0.12);
+      const target = a ? 0.01 * settings.get().sfxVolume : 0.0001;
+      gain.gain.exponentialRampToValueAtTime(target, now + 0.12);
     },
     destroy() {
       try {
