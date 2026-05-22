@@ -1,4 +1,4 @@
-import { TURRET_CONFIGS } from '../core/BuildingConfigs';
+﻿import { TURRET_CONFIGS } from '../core/BuildingConfigs';
 import { Enemy } from '../enemies/Enemy';
 import type { Attackable } from '../core/Attackable';
 import { playSfx } from '../audio/Sfx';
@@ -35,6 +35,7 @@ export class Turret implements Attackable {
     const dead = target.takeDamage(this.stats.damage);
     this.drawShot(target);
     playSfx(this.scene, 'turret-shot');
+
     if (dead) {
       enemies.delete(target);
       target.destroy();
@@ -66,22 +67,35 @@ export class Turret implements Attackable {
   }
 
   private drawShot(target: Enemy): void {
-    const shot = this.scene.add.line(
-      0,
-      0,
-      this.sprite.x,
-      this.sprite.y,
-      target.sprite.x,
-      target.sprite.y,
-      0x9df2ff,
-      0.72
-    ).setOrigin(0, 0).setDepth(23);
+    const startX = this.sprite.x;
+    const startY = this.sprite.y;
+    const endX = target.sprite.x;
+    const endY = target.sprite.y;
+
+    const tracerCore = this.scene.add.line(0, 0, startX, startY, endX, endY, 0xcff6ff, 0.95)
+      .setOrigin(0, 0)
+      .setLineWidth(2.6, 2.6)
+      .setDepth(25);
+
+    const tracerGlow = this.scene.add.line(0, 0, startX, startY, endX, endY, 0x61d8ff, 0.48)
+      .setOrigin(0, 0)
+      .setLineWidth(6.5, 6.5)
+      .setDepth(24);
+
+    const muzzleFlash = this.scene.add.circle(startX, startY, 4, 0xb8f4ff, 0.95).setDepth(26);
+    const hitFlash = this.scene.add.circle(endX, endY, 5, 0xfff0bf, 0.9).setDepth(26);
 
     this.scene.tweens.add({
-      targets: shot,
+      targets: [tracerCore, tracerGlow, muzzleFlash, hitFlash],
       alpha: 0,
-      duration: 90,
-      onComplete: () => shot.destroy(),
+      duration: 110,
+      ease: 'Cubic.easeOut',
+      onComplete: () => {
+        tracerCore.destroy();
+        tracerGlow.destroy();
+        muzzleFlash.destroy();
+        hitFlash.destroy();
+      },
     });
   }
 }

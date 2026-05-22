@@ -1,4 +1,4 @@
-import { eventBus } from './EventBus';
+﻿import { eventBus } from './EventBus';
 
 export type GamePhase = 'gathering' | 'building' | 'wave' | 'boss' | 'gameover' | 'victory';
 
@@ -9,15 +9,15 @@ export class WaveManager {
   private currentPhase: GamePhase = 'gathering';
   private phaseTimer: number = 0;
   
-  private gatheringDuration: number = 30000; // 30 сек для сбора ресурсов
-  private buildingDuration: number = 30000;  // 30 сек для строительства
-  private waveDuration: number = 60000;      // 60 сек для волны
+  private gatheringDuration: number = 30000; // 30 СЃРµРє РґР»СЏ СЃР±РѕСЂР° СЂРµСЃСѓСЂСЃРѕРІ
+  private buildingDuration: number = 30000;  // 30 СЃРµРє РґР»СЏ СЃС‚СЂРѕРёС‚РµР»СЊСЃС‚РІР°
+  private waveDuration: number = 60000;      // 60 СЃРµРє РґР»СЏ РІРѕР»РЅС‹
   
-  private enemiesCount: number = 3; // Количество враго в первой волне
+  private enemiesCount: number = 10;
   private maxWaves: number = MAX_WAVES;
   
   private baseWaveDuration: number = 60000;
-  private waveMultiplier: number = 1.1; // На каждую волну время +10%
+  private waveMultiplier: number = 1.1; // РќР° РєР°Р¶РґСѓСЋ РІРѕР»РЅСѓ РІСЂРµРјСЏ +10%
 
   constructor() {
     this.startPhase('gathering');
@@ -33,7 +33,7 @@ export class WaveManager {
       this.transitionToNextPhase();
     }
 
-    // Отправляем событие для обновления UI
+    // РћС‚РїСЂР°РІР»СЏРµРј СЃРѕР±С‹С‚РёРµ РґР»СЏ РѕР±РЅРѕРІР»РµРЅРёСЏ UI
     eventBus.emit('wave-update', {
       phase: this.currentPhase,
       waveNumber: this.currentWave,
@@ -86,8 +86,8 @@ export class WaveManager {
   }
 
   private calculateWaveParams(): void {
-    // Увеличиваем параметры волны
-    this.enemiesCount = Math.floor(3 + this.currentWave * 1.5);
+    // РЈРІРµР»РёС‡РёРІР°РµРј РїР°СЂР°РјРµС‚СЂС‹ РІРѕР»РЅС‹
+    this.enemiesCount = 10 + (this.currentWave - 1) * 3;
     this.waveDuration = Math.floor(this.baseWaveDuration * Math.pow(this.waveMultiplier, this.currentWave - 1));
   }
 
@@ -100,7 +100,7 @@ export class WaveManager {
         this.startPhase('wave');
         break;
       case 'wave':
-        // После волны проверяем, не последняя ли это была волна
+        // РџРѕСЃР»Рµ РІРѕР»РЅС‹ РїСЂРѕРІРµСЂСЏРµРј, РЅРµ РїРѕСЃР»РµРґРЅСЏСЏ Р»Рё СЌС‚Рѕ Р±С‹Р»Р° РІРѕР»РЅР°
         if (this.currentWave >= this.maxWaves) {
           this.startPhase('victory');
         } else {
@@ -110,7 +110,7 @@ export class WaveManager {
       case 'boss':
       case 'gameover':
       case 'victory':
-        // Игра закончилась, не переходим
+        // РРіСЂР° Р·Р°РєРѕРЅС‡РёР»Р°СЃСЊ, РЅРµ РїРµСЂРµС…РѕРґРёРј
         break;
     }
   }
@@ -160,3 +160,4 @@ export class WaveManager {
     this.currentPhase = 'victory';
   }
 }
+

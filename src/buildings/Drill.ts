@@ -18,7 +18,7 @@ export class Drill extends Building {
 
     this.timer += delta;
     if (this.timer >= 1800) {
-      eventBus.emit('resource-mined', { type: this.resourceType as 'iron' | 'stone', amount: 20 });
+      eventBus.emit('resource-mined', { type: this.resourceType as 'iron' | 'stone', amount: 40 });
       this.timer = 0;
 
       this.sprite.scene.tweens.add({

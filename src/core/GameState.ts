@@ -8,10 +8,12 @@ export class GameState {
         iron: 1200,
         stone: 1000,
         gradePoint: 0
+        iron: 2200,
+        stone: 1800
     };
     public drillsBuilt = 0;
     public turretsBuilt = 0;
-    public unlockedTurretLevel = 0;
+    public unlockedTurretLevel = 1;
 
     constructor() {
         eventBus.on("resource-mined", (payload) => {

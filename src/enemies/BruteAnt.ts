@@ -1,16 +1,18 @@
-﻿import { Enemy } from './Enemy';
+import { Enemy } from './Enemy';
 
-export class Zealot extends Enemy {
-  private readonly idleFrames = ['ant_idle_1', 'ant_idle_2', 'ant_idle_3', 'ant_idle_4'];
-  private readonly walkFrames = ['ant_walk_1', 'ant_walk_2', 'ant_walk_3'];
-  private readonly attackFrames = ['ant_attack_1', 'ant_attack_2', 'ant_attack_3'];
+export class BruteAnt extends Enemy {
+  private readonly idleFrames = ['brute_idle_1', 'brute_idle_2', 'brute_idle_3', 'brute_idle_4'];
+  private readonly walkFrames = ['brute_walk_1', 'brute_walk_2', 'brute_walk_3'];
+  private readonly attackFrames = ['brute_attack_1', 'brute_attack_2', 'brute_attack_3'];
   private animTimer = 0;
   private attackAnimTimer = 0;
   private lastAttackAt = -2000;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    // HP: 100 (x2), Damage: 20, Speed: 70 px/sec
-    super(scene, x, y, 'ant_idle_1', 100, 20, 70);
+    // x3 HP from standard ant (100), x2 damage (20 -> 40), x0.7 speed (70 -> 49)
+    super(scene, x, y, 'brute_idle_1', 300, 40, 49);
+    this.sprite.setDisplaySize(99, 99); // 1.5x bigger than previous brute size
+    this.baseScale = this.sprite.scaleX;
   }
 
   update(delta: number): void {
@@ -29,7 +31,7 @@ export class Zealot extends Enemy {
       const dy = this.targetY - this.sprite.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
-      if (distance < 50) {
+      if (distance < 58) {
         const prevAttackTimer = this.attackTimer;
         this.doAttack();
         if (prevAttackTimer >= this.attackCooldown && this.attackTimer === 0) {
@@ -39,19 +41,19 @@ export class Zealot extends Enemy {
       }
     }
 
-    const inAttackAnim = this.scene.time.now - this.lastAttackAt < 240;
+    const inAttackAnim = this.scene.time.now - this.lastAttackAt < 250;
     if (inAttackAnim) {
       this.attackAnimTimer += delta;
-      this.applyFrameAnimation(this.attackFrames, this.attackAnimTimer, 70);
+      this.applyFrameAnimation(this.attackFrames, this.attackAnimTimer, 75);
       return;
     }
 
     if (moved) {
-      this.applyFrameAnimation(this.walkFrames, this.animTimer, 90);
+      this.applyFrameAnimation(this.walkFrames, this.animTimer, 100);
       return;
     }
 
-    this.applyFrameAnimation(this.idleFrames, this.animTimer, 160);
+    this.applyFrameAnimation(this.idleFrames, this.animTimer, 170);
   }
 
   private applyFrameAnimation(frames: string[], timer: number, frameDuration: number): void {
