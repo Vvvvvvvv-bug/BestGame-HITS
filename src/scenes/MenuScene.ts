@@ -114,10 +114,11 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   private createTexts(): void {
-    const titleSize = Math.min(50, Math.floor(this.scale.width * 0.06));
+    const panelW = Math.min(680, this.scale.width - 40);
+    const titleSize = Math.min(72, Math.floor(panelW * 0.13));
 
     this.title = this.add
-      .text(this.centerX, this.centerY - 120, 'BEST GAME: HITS', {
+      .text(this.centerX, this.centerY - 160, 'BEST GAME: HITS', {
         fontSize: `${titleSize}px`,
         color: '#d9fbff',
         fontStyle: 'bold',
@@ -129,7 +130,7 @@ export default class MenuScene extends Phaser.Scene {
       .setDepth(10);
 
     this.add
-      .text(this.centerX, this.centerY - 46, 'Tower Defense // Survival Build', {
+      .text(this.centerX, this.centerY - 80, 'Tower Defense // Survival Build', {
         fontSize: '24px',
         color: '#8edbf8',
         fontFamily: 'Trebuchet MS, Verdana, sans-serif',
@@ -138,7 +139,7 @@ export default class MenuScene extends Phaser.Scene {
       .setDepth(10);
 
     this.hint = this.add
-      .text(this.centerX, this.centerY + 156, 'Подсказка: строй буровые и турели до начала волны', {
+      .text(this.centerX, this.centerY + 215, 'Подсказка: строй буровые и турели до начала волны', {
         fontSize: '18px',
         color: '#92b4cb',
         fontFamily: 'Trebuchet MS, Verdana, sans-serif',
@@ -148,15 +149,15 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   private createButtons(): void {
-    this.createButton(this.centerX, this.centerY + 32, 340, 72, 'НАЧАТЬ ИГРУ', () => {
+    this.createButton(this.centerX, this.centerY - 10, 340, 72, 'НАЧАТЬ ИГРУ', () => {
       this.scene.start('MainScene');
     });
 
-    this.createButton(this.centerX, this.centerY + 118, 340, 72, 'НАСТРОЙКИ', () => {
+    this.createButton(this.centerX, this.centerY + 70, 340, 72, 'НАСТРОЙКИ', () => {
       console.log('Настройки открываются');
     });
 
-    this.createButton(this.centerX, this.centerY + 204, 340, 72, 'ВЫХОД', () => {
+    this.createButton(this.centerX, this.centerY + 150, 340, 72, 'ВЫХОД', () => {
       if (window.close) window.close();
     });
   }
