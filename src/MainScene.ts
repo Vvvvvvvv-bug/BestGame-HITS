@@ -74,6 +74,8 @@ export default class MainScene extends Phaser.Scene {
   public gameState: GameState = new GameState();
   private selectedType: string = 'drill';
   private selectingBomb: boolean = false;
+  private pendingBombCell: { gridX: number; gridY: number } | null = null; // бомба ставится со 2-го клика
+  private bombConfirmMarker?: Phaser.GameObjects.Rectangle;
   private waveManager!: WaveManager;
   private currentPhase: string = 'gathering';
   private baseIncomeTimer = 0;
@@ -176,6 +178,7 @@ export default class MainScene extends Phaser.Scene {
     
     this.buildingSelector = new BuildingSelector(this, this.gameState, (type, isBomb) => {
       this.turretSelector?.clearSelection();
+      this.clearBombPending();
       this.selectedType = type;
       this.selectingBomb = isBomb;
     });
@@ -183,6 +186,7 @@ export default class MainScene extends Phaser.Scene {
     this.bombSelector = new BombSelector();
 
     this.turretSelector = new TurretSelector(this, this.gameState, (type: TurretType) => {
+      this.clearBombPending();
       this.selectedType = type === 'freeze' ? 'turret_freeze' : `turret_mk${type.replace('mk', '')}`;
       this.selectingBomb = false;
     });
@@ -592,6 +596,7 @@ export default class MainScene extends Phaser.Scene {
 
     if (gridX < 0 || gridX >= this.cols || gridY < 0 || gridY >= this.rows) {
       this.turretSelector?.clearSelection();
+      this.clearBombPending();
       if (this.currentPhase === 'wave') {
         this.player.attackEnemy(this.enemies);
       }
@@ -601,10 +606,56 @@ export default class MainScene extends Phaser.Scene {
     this.turretSelector?.clearSelection();
 
     if (this.selectingBomb) {
-      this.placeBomb(gridX, gridY);
+      this.handleBombClick(gridX, gridY);
     } else {
+      this.clearBombPending();
       this.placeBuilding(gridX, gridY);
     }
+  }
+
+  /** Бомба ставится в два клика: 1-й намечает ячейку, 2-й по той же — подтверждает. */
+  private handleBombClick(gridX: number, gridY: number): void {
+    if (this.pendingBombCell && this.pendingBombCell.gridX === gridX && this.pendingBombCell.gridY === gridY) {
+      this.clearBombPending();
+      this.placeBomb(gridX, gridY);
+      return;
+    }
+
+    if (this.isOccupied(gridX, gridY)) {
+      playSfx(this, 'ui-deny');
+      return;
+    }
+
+    this.setBombPending(gridX, gridY);
+    playSfx(this, 'ui-click');
+  }
+
+  private setBombPending(gridX: number, gridY: number): void {
+    this.pendingBombCell = { gridX, gridY };
+    const x = this.getGridOriginX() + gridX * this.CELL_SIZE + 1;
+    const y = gridY * this.CELL_SIZE + 1;
+
+    if (!this.bombConfirmMarker) {
+      this.bombConfirmMarker = this.add
+        .rectangle(0, 0, this.CELL_SIZE - 2, this.CELL_SIZE - 2, 0xff6b3c, 0.3)
+        .setOrigin(0, 0)
+        .setStrokeStyle(2, 0xffb052, 1)
+        .setDepth(101);
+      this.tweens.add({
+        targets: this.bombConfirmMarker,
+        alpha: { from: 0.5, to: 1 },
+        duration: 340,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    }
+    this.bombConfirmMarker.setPosition(x, y).setVisible(true);
+  }
+
+  private clearBombPending(): void {
+    this.pendingBombCell = null;
+    this.bombConfirmMarker?.setVisible(false);
   }
 
   placeBuilding(gridX: number, gridY: number): void {
