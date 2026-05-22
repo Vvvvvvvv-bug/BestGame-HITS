@@ -31,7 +31,7 @@ export abstract class Enemy {
     this.damage = damage;
     this.speed = speed;
 
-    this.sprite = scene.add.sprite(x, y, 'enemies', frameKey);
+    this.sprite = scene.add.sprite(x, y, frameKey);
     this.sprite.setOrigin(0.5, 0.5);
     this.sprite.setDepth(20);
   }

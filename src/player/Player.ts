@@ -18,7 +18,7 @@ export class Player {
       .setStrokeStyle(2, 0x8bd7ff, 0.8)
       .setDepth(29);
 
-    this.sprite = scene.add.sprite(x, y, 'player_body');
+    this.sprite = scene.add.sprite(x, y, 'player');
     this.sprite.setOrigin(0.5, 0.5);
     this.sprite.setDepth(30);
     this.sprite.setDisplaySize(64, 64);
@@ -29,7 +29,7 @@ export class Player {
   }
 
   takeDamage(amount: number): boolean {
-    this.healthPoints -= amount;
+    this.healthPoints = Math.max(0, this.healthPoints - amount);
     return this.healthPoints <= 0;
   }
 

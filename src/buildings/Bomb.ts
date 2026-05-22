@@ -16,7 +16,7 @@ export class Bomb {
     this.y = y;
     this.onDetonate = onDetonate;
 
-    this.sprite = scene.add.sprite(x, y, 'bombs', 'bomb');
+    this.sprite = scene.add.sprite(x, y, 'bomb');
     this.sprite.setOrigin(0.5, 0.5);
     this.sprite.setDepth(15);
     this.sprite.setInteractive({ useHandCursor: true });

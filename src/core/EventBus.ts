@@ -4,8 +4,10 @@ type EventMap = {
     phase: 'gathering' | 'building' | 'wave' | 'boss' | 'gameover' | 'victory';
     waveNumber: number;
     timeLeft: number;
+    waveDuration: number;
     enemiesInWave: number;
   };
+  'enemies-remaining-update': { enemiesRemaining: number };
 };
 
 class EventBus {

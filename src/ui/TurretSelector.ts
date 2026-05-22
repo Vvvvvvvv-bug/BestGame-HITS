@@ -45,7 +45,7 @@ export class TurretSelector {
         .setInteractive({ useHandCursor: true })
         .setStrokeStyle(2, UI_COLORS.borderMuted);
 
-      const icon = scene.add.sprite(0, -18, 'turret_assets', `turret-${turret.level}`).setDisplaySize(34, 34);
+      const icon = scene.add.sprite(0, -18, `turret-${turret.level}`).setDisplaySize(34, 34);
       const label = scene.add.text(0, 9, turret.name, {
         ...TEXT_STYLE,
         fontSize: '11px',

@@ -28,7 +28,11 @@ export class EnemySpawner {
     this.spawnTimer = 0;
     
     // Рассчитываем интервал появления врагов
-    this.spawnInterval = Math.max(500, (duration / enemyCount) * 1.2);
+    this.spawnInterval = enemyCount > 0 ? Math.max(500, duration / enemyCount) : 0;
+
+    if (this.totalToSpawn > 0) {
+      this.spawnEnemy();
+    }
   }
 
   public update(delta: number): void {
@@ -92,5 +96,9 @@ export class EnemySpawner {
 
   public getSpawnedCount(): number {
     return this.spawned;
+  }
+
+  public getRemainingToSpawn(): number {
+    return Math.max(0, this.totalToSpawn - this.spawned);
   }
 }

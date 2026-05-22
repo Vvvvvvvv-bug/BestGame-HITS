@@ -3,6 +3,7 @@ import { eventBus } from '../core/EventBus';
 import { Building } from './Building';
 
 export class Drill extends Building {
+  public allowGain: boolean = true;
   private timer: number = 0;
   private resourceType: 'iron' | 'stone' | undefined;
 
@@ -13,6 +14,7 @@ export class Drill extends Building {
 
   public update(delta: number): void {
     if (!this.resourceType) return; 
+    if (!this.allowGain) return;
 
     this.timer += delta;
     if (this.timer >= 1800) {

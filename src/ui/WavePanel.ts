@@ -76,12 +76,17 @@ export class WavePanel {
     eventBus.on('wave-update', (data) => {
       this.update(data);
     });
+
+    eventBus.on('enemies-remaining-update', (data) => {
+      this.enemiesText.setText(`Осталось: ${data.enemiesRemaining}`);
+    });
   }
 
   private update(data: {
     phase: string;
     waveNumber: number;
     timeLeft: number;
+    waveDuration: number;
     enemiesInWave: number;
   }): void {
     const phase = data.phase as keyof typeof PHASE_NAMES;
@@ -90,7 +95,9 @@ export class WavePanel {
     this.phaseText.setColor(PHASE_COLORS[phase]);
 
     this.waveText.setText(`Волна: ${data.waveNumber}`);
-    this.enemiesText.setText(`Врагов: ${data.enemiesInWave}`);
+    if (data.phase !== 'wave') {
+      this.enemiesText.setText(`Врагов: ${data.enemiesInWave}`);
+    }
     
     const seconds = Math.ceil(data.timeLeft / 1000);
     this.timerText.setText(`Время: ${seconds}с`);

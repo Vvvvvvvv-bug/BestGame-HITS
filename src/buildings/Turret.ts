@@ -10,7 +10,7 @@ export class Turret {
   constructor(scene: Phaser.Scene, x: number, y: number, level: number) {
     this.scene = scene;
     this.stats = TURRET_CONFIGS[level - 1] ?? TURRET_CONFIGS[0];
-    this.sprite = scene.add.sprite(x, y, 'turret_assets', `turret-${this.stats.level}`);
+    this.sprite = scene.add.sprite(x, y, `turret-${this.stats.level}`);
     this.sprite.setOrigin(0.5, 0.5);
     this.sprite.setDepth(24);
     this.sprite.setDisplaySize(32, 32);

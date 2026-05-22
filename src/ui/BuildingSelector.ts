@@ -17,9 +17,9 @@ export class BuildingSelector {
     this.gameState = gameState;
 
     const items = [
-      { id: 'drill', name: 'БУР', isBomb: false, texture: 'building_assets', frame: 'drill' },
-      { id: 'wall', name: 'СТЕНА', isBomb: false, texture: 'building_assets', frame: 'wall' },
-      { id: 'bomb', name: 'БОМБА', isBomb: true, texture: 'bomb_icon', frame: undefined }
+      { id: 'drill', name: 'БУР', isBomb: false, texture: 'drill' },
+      { id: 'wall', name: 'СТЕНА', isBomb: false, texture: 'wall' },
+      { id: 'bomb', name: 'БОМБА', isBomb: true, texture: 'bomb' }
     ];
 
     const centerX = scene.scale.width - this.PANEL_WIDTH / 2;
@@ -42,9 +42,7 @@ export class BuildingSelector {
         .setInteractive({ useHandCursor: true })
         .setStrokeStyle(1.5, UI_COLORS.borderMuted);
       
-      const icon = item.frame
-        ? scene.add.sprite(-70, -2, item.texture, item.frame).setDisplaySize(40, 40)
-        : scene.add.sprite(-70, -2, item.texture).setDisplaySize(40, 40);
+      const icon = scene.add.sprite(-70, -2, item.texture).setDisplaySize(40, 40);
       
       const label = scene.add.text(-34, -18, item.name, { 
         ...TEXT_STYLE,

@@ -14,6 +14,7 @@ import { BombSelector } from './ui/BombSelector';
 import { TurretSelector } from './ui/TurretSelector'; 
 import { Bomb } from './buildings/Bomb';
 import { Turret } from './buildings/Turret';
+import { Drill } from './buildings/Drill';
 import { BUILDING_CONFIGS } from './core/BuildingConfigs';
 import { UI_COLORS, UI_DEPTH } from './ui/uiTheme';
 export default class MainScene extends Phaser.Scene {
@@ -31,6 +32,10 @@ export default class MainScene extends Phaser.Scene {
   private enemies: Set<Enemy> = new Set();
   private enemySpawner!: EnemySpawner;
   private player!: Player;
+  private playerHealthFill!: Phaser.GameObjects.Rectangle;
+  private playerHealthText!: Phaser.GameObjects.Text;
+  private gameOverShown: boolean = false;
+  private victoryShown: boolean = false;
 
   private map!: Phaser.Tilemaps.Tilemap;
   private tileset!: Phaser.Tilemaps.Tileset;
@@ -52,8 +57,8 @@ export default class MainScene extends Phaser.Scene {
   private waveManager!: WaveManager;
   private currentPhase: string = 'gathering';
 
-  private readonly TILESET_KEY = 'tiles';
-  private readonly TILESET_NAME = 'tiles';
+  private readonly TILESET_KEY = 'tileset';
+  private readonly TILESET_NAME = 'tileset';
 
   // Список твоих 5 пулеметов для внутренней логики апгрейдов, если понадобится
   constructor() {
@@ -62,55 +67,24 @@ export default class MainScene extends Phaser.Scene {
 
   preload() {
     this.load.image('hero', 'src/assets/hero.png');
-    this.load.svg('player_body', 'src/assets/player.svg', { width: 64, height: 64 });
-    this.load.svg('building_assets', 'src/assets/buildings.svg', { width: 96, height: 48 });
-    this.load.svg('turret_assets', 'src/assets/turrets.svg', { width: 240, height: 48 });
-    this.load.svg('bomb_icon', 'src/assets/bomb.svg', { width: 48, height: 48 });
-    this.load.svg('enemy_base', 'src/assets/enemy.svg', { width: 44, height: 44 });
+    this.load.svg('player', 'src/assets/player.svg', { width: 64, height: 64 });
+    this.load.svg('drill', 'src/assets/drill.svg', { width: 48, height: 48 });
+    this.load.svg('wall', 'src/assets/wall.svg', { width: 48, height: 48 });
+    this.load.svg('bomb', 'src/assets/bomb.svg', { width: 48, height: 48 });
+    this.load.svg('enemy', 'src/assets/enemy.svg', { width: 44, height: 44 });
+    this.load.svg('turret-1', 'src/assets/turret-1.svg', { width: 48, height: 48 });
+    this.load.svg('turret-2', 'src/assets/turret-2.svg', { width: 48, height: 48 });
+    this.load.svg('turret-3', 'src/assets/turret-3.svg', { width: 48, height: 48 });
+    this.load.svg('turret-4', 'src/assets/turret-4.svg', { width: 48, height: 48 });
+    this.load.svg('turret-5', 'src/assets/turret-5.svg', { width: 48, height: 48 });
+    this.load.svg(this.TILESET_KEY, 'src/assets/tileset.svg', { width: 96, height: 32 });
     
     this.load.svg('tile_empty', 'src/assets/tile-empty.svg', { width: 32, height: 32 });
     this.load.svg('tile_iron', 'src/assets/tile-iron.svg', { width: 32, height: 32 });
     this.load.svg('tile_stone', 'src/assets/tile-stone.svg', { width: 32, height: 32 });
-    
-    this.generateFallbackTextures();
-  }
-
-  private generateFallbackTextures(): void {
-    const TILE = this.CELL_SIZE;
-    const rt = this.add.renderTexture(0, 0, TILE * 3, TILE);
-    const g = this.add.graphics();
-    g.fillStyle(0x1a1a2e); g.fillRect(0, 0, TILE, TILE);
-    g.fillStyle(0x4e4e50); g.fillRect(TILE, 0, TILE, TILE);
-    g.fillStyle(0x950740); g.fillCircle(TILE + TILE/2, TILE/2, 4);
-    g.fillStyle(0x1a1a2e); g.fillRect(TILE * 2, 0, TILE, TILE);
-    g.fillStyle(0x4cc9f0); g.fillTriangle(TILE*2 + 16, 4, TILE*2 + 4, 28, TILE*2 + 28, 28);
-    rt.draw(g, 0, 0);
-    rt.saveTexture(this.TILESET_KEY);
-
-    const rtB = this.add.renderTexture(0, 0, TILE * 2, TILE);
-    g.clear();
-    g.fillStyle(0x533483); g.fillRect(0, 0, TILE, TILE);
-    g.fillStyle(0x16213e); g.fillRect(TILE, 0, TILE, TILE);
-    rtB.draw(g, 0, 0);
-    rtB.saveTexture('buildings');
-    this.textures.get('buildings').add('drill', 0, 0, 0, TILE, TILE);
-    this.textures.get('buildings').add('wall', 0, TILE, 0, TILE, TILE);
-
-    const rtBomb = this.add.renderTexture(0, 0, TILE, TILE);
-    g.clear(); g.fillStyle(0xff0000); g.fillCircle(TILE/2, TILE/2, TILE/3);
-    rtBomb.draw(g, 0, 0); rtBomb.saveTexture('bombs');
-    this.textures.get('bombs').add('bomb', 0, 0, 0, TILE, TILE);
-
-    const rtEnemy = this.add.renderTexture(0, 0, TILE, TILE);
-    g.clear(); g.fillStyle(0xff3333); g.fillCircle(TILE/2, TILE/2, TILE/3);
-    rtEnemy.draw(g, 0, 0); rtEnemy.saveTexture('enemies');
-    this.textures.get('enemies').add('zealot', 0, 0, 0, TILE, TILE);
-
-    g.destroy(); rt.destroy(); rtB.destroy(); rtBomb.destroy(); rtEnemy.destroy();
   }
 
   create() {
-    this.setupAssetFrames();
     this.calculateGridDimensions();
     this.setupTilemap();
     this.setupGridLines();
@@ -121,6 +95,7 @@ export default class MainScene extends Phaser.Scene {
     const centerX = this.getPlayerCenterX();
     const centerY = this.getPlayerCenterY();
     this.player = new Player(this, centerX, centerY);
+    this.setupPlayerHealthBar();
     
     this.resourcePanel = new ResourcePanel(this);
     this.wavePanel = new WavePanel(this);
@@ -140,14 +115,17 @@ export default class MainScene extends Phaser.Scene {
       this.selectingBomb = false;
     });
 
-    eventBus.on('wave-update', (data: { phase: string; enemiesInWave: number; waveNumber: number }) => {
+    eventBus.on('wave-update', (data: { phase: string; enemiesInWave: number; waveNumber: number; waveDuration: number }) => {
       if (data.phase === 'victory') {
-        this.showVictoryScreen();
+        if (!this.victoryShown) {
+          this.showVictoryScreen();
+        }
         return;
       }
 
       if (data.phase === 'wave' && this.currentPhase !== 'wave') {
-        this.enemySpawner.startWave(data.enemiesInWave, 60000);
+        this.enemySpawner.startWave(data.enemiesInWave, data.waveDuration);
+        this.emitEnemiesRemainingUpdate();
         this.currentPhase = 'wave';
       } else if (data.phase !== 'wave' && this.currentPhase === 'wave') {
         this.enemySpawner.stopWave();
@@ -160,18 +138,6 @@ export default class MainScene extends Phaser.Scene {
     const { width, height } = this.scale;
     this.cols = Math.floor((width - this.LEFT_PANEL_WIDTH - this.RIGHT_PANEL_WIDTH) / this.CELL_SIZE);
     this.rows = Math.floor(height / this.CELL_SIZE);
-  }
-
-  private setupAssetFrames(): void {
-    const buildings = this.textures.get('building_assets');
-    if (!buildings.has('drill')) buildings.add('drill', 0, 0, 0, 48, 48);
-    if (!buildings.has('wall')) buildings.add('wall', 0, 48, 0, 48, 48);
-
-    const turrets = this.textures.get('turret_assets');
-    for (let level = 1; level <= 5; level++) {
-      const frame = `turret-${level}`;
-      if (!turrets.has(frame)) turrets.add(frame, 0, (level - 1) * 48, 0, 48, 48);
-    }
   }
 
   private setupSidebar(): void {
@@ -260,6 +226,33 @@ export default class MainScene extends Phaser.Scene {
     this.ghost.setOrigin(0, 0);
     this.ghost.setVisible(false);
     this.ghost.setDepth(100);
+  }
+
+  private setupPlayerHealthBar(): void {
+    const x = this.player.sprite.x;
+    const y = this.player.sprite.y - 48;
+
+    this.add.rectangle(x, y, 86, 10, 0x182433, 0.95)
+      .setStrokeStyle(1, 0xd7e4f2, 0.7)
+      .setDepth(32);
+    this.playerHealthFill = this.add.rectangle(x - 42, y, 84, 6, 0x42f5a7, 1)
+      .setOrigin(0, 0.5)
+      .setDepth(33);
+    this.playerHealthText = this.add.text(x, y - 18, '', {
+      fontFamily: '"Inter", "Segoe UI", Arial, sans-serif',
+      fontSize: '12px',
+      color: '#eef7ff',
+      resolution: 2,
+    }).setOrigin(0.5).setDepth(33);
+
+    this.updatePlayerHealthBar();
+  }
+
+  private updatePlayerHealthBar(): void {
+    const healthPercent = Phaser.Math.Clamp(this.player.healthPoints / this.player.maxHealthPoints, 0, 1);
+    this.playerHealthFill.setScale(healthPercent, 1);
+    this.playerHealthFill.setFillStyle(healthPercent > 0.35 ? 0x42f5a7 : 0xff6b7d);
+    this.playerHealthText.setText(`HP: ${this.player.healthPoints}/${this.player.maxHealthPoints}`);
   }
 
   private setupInput(): void {
@@ -439,6 +432,9 @@ export default class MainScene extends Phaser.Scene {
     this.enemySpawner.update(delta);
 
     for (const building of this.buildings.values()) {
+      if (building instanceof Drill) {
+        building.allowGain = this.currentPhase !== 'wave';
+      }
       building.update(delta);
     }
 
@@ -489,9 +485,32 @@ export default class MainScene extends Phaser.Scene {
     }
     for (const key of destroyedBuildings) this.buildings.delete(key);
 
+    this.updatePlayerHealthBar();
+    if (this.player.healthPoints <= 0) {
+      this.showGameOverScreen();
+      return;
+    }
+
+    this.completeWaveIfCleared();
+    this.emitEnemiesRemainingUpdate();
     this.resourcePanel.update(this.gameState.resources);
     this.buildingSelector.update();
     this.turretSelector.update();
+  }
+
+  private emitEnemiesRemainingUpdate(): void {
+    if (this.currentPhase !== 'wave') return;
+
+    const enemiesRemaining = this.enemies.size + this.enemySpawner.getRemainingToSpawn();
+
+    eventBus.emit('enemies-remaining-update', { enemiesRemaining });
+  }
+
+  private completeWaveIfCleared(): void {
+    if (this.currentPhase !== 'wave') return;
+    if (this.enemySpawner.isSpawning() || this.enemies.size > 0) return;
+
+    this.waveManager.completeWave();
   }
 
   private findNearestTarget(enemy: Enemy, nearestBuilding: Building | null): Building | Player | null {
@@ -522,6 +541,9 @@ export default class MainScene extends Phaser.Scene {
   }
 
   private showVictoryScreen(): void {
+    if (this.victoryShown) return;
+
+    this.victoryShown = true;
     this.enemySpawner.stopWave();
     this.currentPhase = 'victory';
 
@@ -545,5 +567,21 @@ export default class MainScene extends Phaser.Scene {
       yoyo: true,
       repeat: -1
     });
+  }
+
+  private showGameOverScreen(): void {
+    if (this.gameOverShown) return;
+
+    this.gameOverShown = true;
+    this.enemySpawner.stopWave();
+    this.waveManager.setGameOver();
+    this.currentPhase = 'gameover';
+
+    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x000000, 0.72).setDepth(1000);
+    this.add.text(this.scale.width / 2, this.scale.height / 2, 'ПОРАЖЕНИЕ', {
+      fontSize: '46px',
+      color: '#ff6b7d',
+      fontStyle: 'bold'
+    }).setOrigin(0.5).setDepth(1001);
   }
 }
