@@ -96,6 +96,16 @@ export default class MainScene extends Phaser.Scene {
     this.load.image('ant_attack_1', 'ants_assets/ants_sprite_sheet/4/attack/ant_attack_1.png');
     this.load.image('ant_attack_2', 'ants_assets/ants_sprite_sheet/4/attack/ant_attack_2.png');
     this.load.image('ant_attack_3', 'ants_assets/ants_sprite_sheet/4/attack/ant_attack_3.png');
+    this.load.image('brute_idle_1', 'ants_assets/ants_sprite_sheet/10/idle/ant_idle_1.png');
+    this.load.image('brute_idle_2', 'ants_assets/ants_sprite_sheet/10/idle/ant_idle_2.png');
+    this.load.image('brute_idle_3', 'ants_assets/ants_sprite_sheet/10/idle/ant_idle_3.png');
+    this.load.image('brute_idle_4', 'ants_assets/ants_sprite_sheet/10/idle/ant_idle_4.png');
+    this.load.image('brute_walk_1', 'ants_assets/ants_sprite_sheet/10/walk/ant_walk_1.png');
+    this.load.image('brute_walk_2', 'ants_assets/ants_sprite_sheet/10/walk/ant_walk_2.png');
+    this.load.image('brute_walk_3', 'ants_assets/ants_sprite_sheet/10/walk/ant_walk_3.png');
+    this.load.image('brute_attack_1', 'ants_assets/ants_sprite_sheet/10/attack/ant_attack_1.png');
+    this.load.image('brute_attack_2', 'ants_assets/ants_sprite_sheet/10/attack/ant_attack_2.png');
+    this.load.image('brute_attack_3', 'ants_assets/ants_sprite_sheet/10/attack/ant_attack_3.png');
     this.load.svg('turret-1', 'src/assets/turret-1.svg', { width: 96, height: 96 });
     this.load.svg('turret-2', 'src/assets/turret-2.svg', { width: 96, height: 96 });
     this.load.svg('turret-3', 'src/assets/turret-3.svg', { width: 96, height: 96 });

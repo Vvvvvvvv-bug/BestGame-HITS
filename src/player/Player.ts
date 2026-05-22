@@ -6,8 +6,8 @@ import type { Attackable } from '../core/Attackable';
 export class Player implements Attackable {
   sprite: Phaser.GameObjects.Sprite;
   private baseScale!: number;
-  healthPoints: number = 100;
-  maxHealthPoints: number = 100;
+  healthPoints: number = 1000;
+  maxHealthPoints: number = 1000;
   weapon: Weapon;
   scene: Phaser.Scene;
 

@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+﻿import Phaser from 'phaser';
 
 type SfxType =
   | 'ui-click'
@@ -9,7 +9,15 @@ type SfxType =
   | 'explosion'
   | 'enemy-hit'
   | 'enemy-death'
+  | 'enemy-attack'
+  | 'enemy-roar'
   | 'phase-wave';
+
+function getContext(scene: Phaser.Scene): AudioContext | null {
+  const soundManager = scene.sound as Phaser.Sound.NoAudioSoundManager | Phaser.Sound.HTML5AudioSoundManager | Phaser.Sound.WebAudioSoundManager;
+  if (!('context' in soundManager) || !soundManager.context) return null;
+  return soundManager.context as AudioContext;
+}
 
 function tone(
   scene: Phaser.Scene,
@@ -18,9 +26,8 @@ function tone(
   volume = 0.035,
   type: OscillatorType = 'triangle'
 ): void {
-  const soundManager = scene.sound as Phaser.Sound.NoAudioSoundManager | Phaser.Sound.HTML5AudioSoundManager | Phaser.Sound.WebAudioSoundManager;
-  if (!('context' in soundManager) || !soundManager.context) return;
-  const context = soundManager.context as AudioContext;
+  const context = getContext(scene);
+  if (!context) return;
 
   const now = context.currentTime;
   const osc = context.createOscillator();
@@ -30,6 +37,35 @@ function tone(
   gain.gain.setValueAtTime(0.0001, now);
   gain.gain.exponentialRampToValueAtTime(volume, now + 0.01);
   gain.gain.exponentialRampToValueAtTime(0.0001, now + durationMs / 1000);
+  osc.connect(gain);
+  gain.connect(context.destination);
+  osc.start(now);
+  osc.stop(now + durationMs / 1000 + 0.02);
+}
+
+function sweep(
+  scene: Phaser.Scene,
+  startHz: number,
+  endHz: number,
+  durationMs: number,
+  volume = 0.04,
+  type: OscillatorType = 'sawtooth'
+): void {
+  const context = getContext(scene);
+  if (!context) return;
+
+  const now = context.currentTime;
+  const osc = context.createOscillator();
+  const gain = context.createGain();
+
+  osc.type = type;
+  osc.frequency.setValueAtTime(startHz, now);
+  osc.frequency.exponentialRampToValueAtTime(endHz, now + durationMs / 1000);
+
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(volume, now + 0.006);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + durationMs / 1000);
+
   osc.connect(gain);
   gain.connect(context.destination);
   osc.start(now);
@@ -53,7 +89,8 @@ export function playSfx(scene: Phaser.Scene, type: SfxType): void {
       tone(scene, 700, 90, 0.026, 'square');
       break;
     case 'turret-shot':
-      tone(scene, 980, 45, 0.022, 'square');
+      sweep(scene, 1500, 420, 85, 0.032, 'square');
+      tone(scene, 860, 60, 0.02, 'triangle');
       break;
     case 'explosion':
       tone(scene, 110, 120, 0.055, 'sawtooth');
@@ -65,6 +102,14 @@ export function playSfx(scene: Phaser.Scene, type: SfxType): void {
     case 'enemy-death':
       tone(scene, 240, 70, 0.028, 'sawtooth');
       tone(scene, 150, 110, 0.02, 'triangle');
+      break;
+    case 'enemy-attack':
+      tone(scene, 180, 70, 0.03, 'sawtooth');
+      tone(scene, 130, 90, 0.022, 'triangle');
+      break;
+    case 'enemy-roar':
+      sweep(scene, 220, 120, 190, 0.022, 'sawtooth');
+      tone(scene, 95, 140, 0.017, 'triangle');
       break;
     case 'phase-wave':
       tone(scene, 420, 100, 0.03, 'square');

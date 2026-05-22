@@ -10,7 +10,7 @@ export class GameState {
     };
     public drillsBuilt = 0;
     public turretsBuilt = 0;
-    public unlockedTurretLevel = 0;
+    public unlockedTurretLevel = 1;
 
     constructor() {
         eventBus.on("resource-mined", (payload) => {

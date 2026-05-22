@@ -1,4 +1,5 @@
 import { Zealot } from './Zealot';
+import { BruteAnt } from './BruteAnt';
 import { Enemy } from './Enemy';
 
 export class EnemySpawner {
@@ -48,7 +49,11 @@ export class EnemySpawner {
 
   private spawnEnemy(): void {
     const spawnPos = this.getRandomSpawnPosition();
-    const enemy = new Zealot(this.scene, spawnPos.x, spawnPos.y);
+    const heavyChance = 0.18;
+    const enemy =
+      Math.random() < heavyChance
+        ? new BruteAnt(this.scene, spawnPos.x, spawnPos.y)
+        : new Zealot(this.scene, spawnPos.x, spawnPos.y);
     this.enemies.add(enemy);
     this.spawned++;
 
