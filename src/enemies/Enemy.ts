@@ -1,6 +1,6 @@
 import type { Attackable } from '../core/Attackable';
 
-export abstract class Enemy {
+export abstract class Enemy implements Attackable {
   sprite: Phaser.GameObjects.Sprite;
   gridX: number;
   gridY: number;

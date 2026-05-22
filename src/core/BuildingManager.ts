@@ -8,17 +8,21 @@ export class BuildingManager {
   private buildings = new Map<string, Building>();
   private turrets = new Map<string, Turret>();
   private bombs = new Map<string, Bomb>();
+  private attackables: Attackable[] = [];
 
   addBuilding(key: string, building: Building): void {
     this.buildings.set(key, building);
+    this.attackables.push(building);
   }
 
   addTurret(key: string, turret: Turret): void {
     this.turrets.set(key, turret);
+    this.attackables.push(turret);
   }
 
   addBomb(key: string, bomb: Bomb): void {
     this.bombs.set(key, bomb);
+    this.attackables.push(bomb);
   }
 
   isOccupied(key: string): boolean {
@@ -30,11 +34,7 @@ export class BuildingManager {
   }
 
   getAttackables(): Attackable[] {
-    return [
-      ...this.buildings.values(),
-      ...this.turrets.values(),
-      ...this.bombs.values(),
-    ];
+    return this.attackables;
   }
 
   getTurrets(): Iterable<Turret> {
@@ -78,6 +78,7 @@ export class BuildingManager {
         this.bombs.delete(key);
       }
     }
+    this.rebuildAttackables();
   }
 
   removeBomb(key: string): void {
@@ -85,6 +86,7 @@ export class BuildingManager {
     if (bomb) {
       bomb.destroy();
       this.bombs.delete(key);
+      this.rebuildAttackables();
     }
   }
 
@@ -93,6 +95,7 @@ export class BuildingManager {
       bomb.destroy();
     }
     this.bombs.clear();
+    this.rebuildAttackables();
   }
 
   clearAll(): void {
@@ -102,5 +105,14 @@ export class BuildingManager {
     this.buildings.clear();
     this.turrets.clear();
     this.bombs.clear();
+    this.rebuildAttackables();
+  }
+
+  private rebuildAttackables(): void {
+    this.attackables = [
+      ...this.buildings.values(),
+      ...this.turrets.values(),
+      ...this.bombs.values(),
+    ];
   }
 }
