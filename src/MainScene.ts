@@ -23,6 +23,7 @@ import { Airdrop } from './airdrops/Airdrop';
 import { Zealot } from './enemies/Zealot';
 import { QuizModal } from './ui/QuizModal';
 import { PauseModal } from './ui/PauseModal';
+import { DifficultyIndicator } from './ui/DifficultyIndicator';
 import { pickRandomQuestion } from './quiz/questions';
 export default class MainScene extends Phaser.Scene {
   private readonly CELL_SIZE = 32;
@@ -69,6 +70,7 @@ export default class MainScene extends Phaser.Scene {
   // UI компоненты
   private resourcePanel!: ResourcePanel;
   private wavePanel!: WavePanel;
+  private difficultyIndicator!: DifficultyIndicator;
   private bombSelector!: BombSelector;   
   private buildingSelector!: BuildingSelector;
   private turretSelector!: TurretSelector; 
@@ -177,6 +179,7 @@ export default class MainScene extends Phaser.Scene {
 
     this.resourcePanel = new ResourcePanel(this);
     this.wavePanel = new WavePanel(this);
+    this.difficultyIndicator = new DifficultyIndicator(this);
     this.waveManager = new WaveManager();
     this.enemySpawner = new EnemySpawner(this, this.enemies, this.getPlayfieldBounds());
     this.scheduleNextAirdrop();
@@ -872,6 +875,7 @@ export default class MainScene extends Phaser.Scene {
     this.updateBaseIncome(delta);
     this.emitEnemiesRemainingUpdate();
     this.resourcePanel.update(this.gameState.resources);
+    this.difficultyIndicator.update();
     this.buildingSelector.update();
     this.turretSelector.update();
   }

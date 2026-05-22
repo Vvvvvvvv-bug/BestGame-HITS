@@ -7,34 +7,41 @@ export class ResourcePanel {
 
   constructor(scene: Phaser.Scene) {
     const centerX = 112;
-    createHudPanel(scene, centerX, 45, 218, 74);
+    const panelY = 48;
+    const panelH = 82;
+    createHudPanel(scene, centerX, panelY, 218, panelH);
 
-    const ironIcon = scene.add.sprite(centerX - 78, 25, 'tile_iron')
-      .setDisplaySize(22, 22)
+    const startY = 18;
+    const gap = 24;
+
+    const ironIcon = scene.add.sprite(centerX - 78, startY, 'tile_iron')
+      .setDisplaySize(20, 20)
       .setDepth(UI_DEPTH + 1);
 
-    const stoneIcon = scene.add.sprite(centerX - 78, 47, 'tile_stone')
-      .setDisplaySize(22, 22)
-      .setDepth(UI_DEPTH + 1);
-
-    const gradePointIcon = scene.add.sprite(centerX - 78, 69, 'airdrop')
-      .setDisplaySize(22, 22)
-      .setDepth(UI_DEPTH + 1);
-
-    this.ironText = scene.add.text(centerX - 54, 15, 'Металл: 0', {
+    this.ironText = scene.add.text(centerX - 54, startY - 9, 'Металл: 0', {
       ...TEXT_STYLE,
-      fontSize: '15px',
+      fontSize: '14px',
       fontStyle: 'bold',
     }).setDepth(UI_DEPTH + 1);
 
-    this.stoneText = scene.add.text(centerX - 54, 37, 'Камень: 0', {
+    const stoneY = startY + gap;
+    const stoneIcon = scene.add.sprite(centerX - 78, stoneY, 'tile_stone')
+      .setDisplaySize(20, 20)
+      .setDepth(UI_DEPTH + 1);
+
+    this.stoneText = scene.add.text(centerX - 54, stoneY - 9, 'Камень: 0', {
       ...TEXT_STYLE,
-      fontSize: '15px',
+      fontSize: '14px',
       color: UI_COLORS.mutedText,
       fontStyle: 'bold',
     }).setDepth(UI_DEPTH + 1);
 
-    this.gradePointText = scene.add.text(centerX - 54, 59, 'Очки улучшения: 0', {
+    const gradeY = startY + gap * 2;
+    const gradePointIcon = scene.add.sprite(centerX - 78, gradeY, 'airdrop')
+      .setDisplaySize(20, 20)
+      .setDepth(UI_DEPTH + 1);
+
+    this.gradePointText = scene.add.text(centerX - 54, gradeY - 9, 'Очки: 0', {
       ...TEXT_STYLE,
       fontSize: '14px',
       color: '#ffcf73',
@@ -49,6 +56,6 @@ export class ResourcePanel {
   public update(resources: { iron: number; stone: number; gradePoint: number }): void {
     this.ironText.setText(`Металл: ${resources.iron}`);
     this.stoneText.setText(`Камень: ${resources.stone}`);
-    this.gradePointText.setText(`Очки улучшения: ${resources.gradePoint}`);
+    this.gradePointText.setText(`Очки: ${resources.gradePoint}`);
   }
 }

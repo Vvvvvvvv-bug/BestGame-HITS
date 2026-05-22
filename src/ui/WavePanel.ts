@@ -28,7 +28,7 @@ export class WavePanel {
 
   constructor(scene: Phaser.Scene) {
     const panelX = 112;
-    const panelY = 112;
+    const panelY = 126;
 
     createHudPanel(scene, panelX, panelY, 218, 78, 0.92);
 

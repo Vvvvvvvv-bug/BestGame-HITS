@@ -1,4 +1,5 @@
 ﻿import { eventBus } from './EventBus';
+import { settings } from './Settings';
 
 export type GamePhase = 'gathering' | 'building' | 'wave' | 'boss' | 'gameover' | 'victory';
 
@@ -87,8 +88,20 @@ export class WaveManager {
 
   private calculateWaveParams(): void {
     // РЈРІРµР»РёС‡РёРІР°РµРј РїР°СЂР°РјРµС‚СЂС‹ РІРѕР»РЅС‹
-    this.enemiesCount = 10 + (this.currentWave - 1) * 3;
-    this.waveDuration = Math.floor(this.baseWaveDuration * Math.pow(this.waveMultiplier, this.currentWave - 1));
+    const base = 10 + (this.currentWave - 1) * 3;
+    const difficulty = settings.get().difficulty;
+    let bonus = 0;
+    if (difficulty === 'normal') {
+      bonus = this.currentWave * 5;
+    } else if (difficulty === 'hard') {
+      bonus = this.currentWave * 10;
+    }
+    this.enemiesCount = base + bonus;
+
+    const difficultyDurationMultiplier = difficulty === 'hard' ? 1.3 : difficulty === 'normal' ? 1.15 : 1.0;
+    this.waveDuration = Math.floor(
+      this.baseWaveDuration * Math.pow(this.waveMultiplier, this.currentWave - 1) * difficultyDurationMultiplier
+    );
   }
 
   private transitionToNextPhase(): void {
