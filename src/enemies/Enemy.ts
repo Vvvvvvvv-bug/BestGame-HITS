@@ -14,13 +14,16 @@ export abstract class Enemy implements Attackable {
   protected targetY: number | null = null;
   protected scene: Phaser.Scene;
   protected attackTarget: Attackable | null = null;
-  protected attackTimer: number = 0;
-  protected attackCooldown: number = 1000;
+  protected attackTimer = 0;
+  protected attackCooldown = 1000;
   protected baseScale: number;
-  protected animTime: number = 0;
-  protected moveBlend: number = 0;
-  protected roarTimer: number = Phaser.Math.Between(2200, 5200);
+  protected animTime = 0;
+  protected moveBlend = 0;
+  protected roarTimer = Phaser.Math.Between(2200, 5200);
   protected collisionTargets: Attackable[] = [];
+
+  private freezeChargeMs = 0;
+  private freezeDecayDelayMs = 0;
 
   private hpBarBg?: Phaser.GameObjects.Rectangle;
   private hpBarFill?: Phaser.GameObjects.Rectangle;
@@ -58,6 +61,10 @@ export abstract class Enemy implements Attackable {
     this.attackTarget = target;
   }
 
+  setCollisionTargets(targets: Attackable[]): void {
+    this.collisionTargets = targets;
+  }
+
   getAttackTarget(): Attackable | null {
     return this.attackTarget;
   }
@@ -66,8 +73,6 @@ export abstract class Enemy implements Attackable {
     this.targetX = null;
     this.targetY = null;
     this.attackTarget = null;
-  setCollisionTargets(targets: Attackable[]): void {
-    this.collisionTargets = targets;
   }
 
   needsTarget(): boolean {
@@ -78,6 +83,21 @@ export abstract class Enemy implements Attackable {
       return true;
     }
     return false;
+  }
+
+  applyFreezeCharge(ms: number): void {
+    this.freezeChargeMs = Math.min(3000, this.freezeChargeMs + ms);
+    this.freezeDecayDelayMs = 1400;
+    this.updateFreezeVisual();
+  }
+
+  protected getFreezeStrength(): number {
+    return Phaser.Math.Clamp(this.freezeChargeMs / 3000, 0, 1);
+  }
+
+  protected getEffectiveSpeed(): number {
+    const freezeSlow = 0.6 * this.getFreezeStrength();
+    return this.speed * (1 - freezeSlow);
   }
 
   protected moveTowardsTarget(delta: number): void {
@@ -95,7 +115,7 @@ export abstract class Enemy implements Attackable {
       return;
     }
 
-    const moveDistance = (this.speed * delta) / 1000;
+    const moveDistance = (this.getEffectiveSpeed() * delta) / 1000;
     const moveX = (dx / distance) * moveDistance;
     const moveY = (dy / distance) * moveDistance;
 
@@ -128,21 +148,21 @@ export abstract class Enemy implements Attackable {
   }
 
   protected doAttack(): void {
-    if (this.attackTarget && this.canAttack()) {
-      this.attackTarget.takeDamage(this.damage);
-      playSfx(this.scene, 'enemy-attack');
-      this.attackTimer = 0;
+    if (!this.attackTarget || !this.canAttack()) return;
 
-      this.sprite.scene.tweens.add({
-        targets: this.sprite,
-        scaleX: this.baseScale * 1.24,
-        scaleY: this.baseScale * 0.88,
-        angle: this.sprite.flipX ? -10 : 10,
-        duration: 85,
-        yoyo: true,
-        ease: 'Quad.easeOut'
-      });
-    }
+    this.attackTarget.takeDamage(this.damage);
+    playSfx(this.scene, 'enemy-attack');
+    this.attackTimer = 0;
+
+    this.sprite.scene.tweens.add({
+      targets: this.sprite,
+      scaleX: this.baseScale * 1.24,
+      scaleY: this.baseScale * 0.88,
+      angle: this.sprite.flipX ? -10 : 10,
+      duration: 85,
+      yoyo: true,
+      ease: 'Quad.easeOut'
+    });
   }
 
   protected updateAttack(delta: number): void {
@@ -160,13 +180,16 @@ export abstract class Enemy implements Attackable {
     this.sprite.scaleX = this.baseScale * (1 + stride * 0.08 * runAmount + 0.015 * idleAmount);
     this.sprite.scaleY = this.baseScale * (1 - stride * 0.05 * runAmount + 0.015 * idleAmount);
     this.sprite.angle = stride * 7 * runAmount + bounce * 1.5 * idleAmount;
+
+    this.updateFreezeState(delta);
     this.updateRoar(delta);
   }
 
   abstract update(delta: number): void;
 
   takeDamage(amount: number): boolean {
-    this.healthPoints -= amount;
+    const bonus = 1 + this.getFreezeStrength() * 0.3;
+    this.healthPoints -= Math.round(amount * bonus);
 
     if (this.healthPoints > 0) {
       playSfx(this.scene, 'enemy-hit');
@@ -228,11 +251,45 @@ export abstract class Enemy implements Attackable {
     }
   }
 
+  private updateFreezeState(delta: number): void {
+    if (this.freezeDecayDelayMs > 0) {
+      this.freezeDecayDelayMs -= delta;
+      this.updateFreezeVisual();
+      return;
+    }
+
+    if (this.freezeChargeMs <= 0) {
+      this.freezeChargeMs = 0;
+      this.updateFreezeVisual();
+      return;
+    }
+
+    this.freezeChargeMs = Math.max(0, this.freezeChargeMs - delta * 0.45);
+    this.updateFreezeVisual();
+  }
+
+  private updateFreezeVisual(): void {
+    const strength = this.getFreezeStrength();
+    if (strength <= 0.02) {
+      this.sprite.clearTint();
+      return;
+    }
+
+    const tint = Phaser.Display.Color.Interpolate.ColorWithColor(
+      Phaser.Display.Color.ValueToColor(0xffffff),
+      Phaser.Display.Color.ValueToColor(0x74c8ff),
+      100,
+      Math.floor(strength * 100)
+    );
+    this.sprite.setTint(Phaser.Display.Color.GetColor(tint.r, tint.g, tint.b));
+  }
+
   private findCollisionBlocker(nextX: number, nextY: number): Attackable | null {
     const ownRadius = Math.max(this.sprite.displayWidth, this.sprite.displayHeight) * 0.28;
 
     for (const target of this.collisionTargets) {
       if (target.healthPoints <= 0) continue;
+
       const dx = target.sprite.x - nextX;
       const dy = target.sprite.y - nextY;
       const distance = Math.sqrt(dx * dx + dy * dy);
@@ -255,7 +312,7 @@ export abstract class Enemy implements Attackable {
       return true;
     }
 
-    const angles = [Phaser.Math.DegToRad(35), Phaser.Math.DegToRad(-35), Phaser.Math.DegToRad(65), Phaser.Math.DegToRad(-65)];
+    const angles = [35, -35, 65, -65].map((deg) => Phaser.Math.DegToRad(deg));
     for (const angle of angles) {
       const alt = this.rotate(moveX, moveY, angle);
       const altX = this.sprite.x + alt.x;

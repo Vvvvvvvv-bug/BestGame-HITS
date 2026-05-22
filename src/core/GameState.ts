@@ -1,93 +1,99 @@
-﻿import { eventBus } from "./EventBus";
-import { BUILDING_CONFIGS, scaleCost, TURRET_BUILD_BASE_COST, TURRET_CONFIGS } from "./BuildingConfigs";
-import type { ResourceCost } from "./BuildingConfigs";
-
+﻿import { eventBus } from './EventBus';
+import {
+  BUILDING_CONFIGS,
+  FREEZE_TURRET_COST_MULTIPLIER,
+  scaleCost,
+  TURRET_BUILD_BASE_COST,
+  TURRET_CONFIGS,
+} from './BuildingConfigs';
+import type { ResourceCost } from './BuildingConfigs';
 
 export class GameState {
-    public resources = {
-        iron: 1200,
-        stone: 1000,
-        gradePoint: 0
-        iron: 2200,
-        stone: 1800
-    };
-    public drillsBuilt = 0;
-    public turretsBuilt = 0;
-    public unlockedTurretLevel = 1;
+  public resources = {
+    iron: 2200,
+    stone: 1800,
+    gradePoint: 0,
+  };
 
-    constructor() {
-        eventBus.on("resource-mined", (payload) => {
-            this.resources[payload.type] += payload.amount;
-        });
-    }
+  public drillsBuilt = 0;
+  public turretsBuilt = 0;
+  public unlockedTurretLevel = 1;
+  public freezeTurretUnlocked = false;
 
-    public getDrillCost(): ResourceCost {
-        return scaleCost(BUILDING_CONFIGS.drill.cost, Math.pow(2, this.drillsBuilt));
-    }
+  constructor() {
+    eventBus.on('resource-mined', (payload) => {
+      this.resources[payload.type] += payload.amount;
+    });
+  }
 
-    public getWallCost(): ResourceCost {
-        return BUILDING_CONFIGS.wall.cost;
-    }
+  public getDrillCost(): ResourceCost {
+    return scaleCost(BUILDING_CONFIGS.drill.cost, Math.pow(2, this.drillsBuilt));
+  }
 
-    public getBombCost(): ResourceCost {
-        return BUILDING_CONFIGS.bomb.cost;
-    }
+  public getWallCost(): ResourceCost {
+    return BUILDING_CONFIGS.wall.cost;
+  }
 
-    public getTurretBuildCost(): number {
-        return Math.ceil(TURRET_BUILD_BASE_COST * Math.pow(2, this.turretsBuilt));
-    }
+  public getBombCost(): ResourceCost {
+    return BUILDING_CONFIGS.bomb.cost;
+  }
 
-    public getTurretUnlockCost(level: number): number {
-        return TURRET_CONFIGS[level - 1]?.unlockCost ?? Infinity;
-    }
+  public getTurretBuildCost(): number {
+    return Math.ceil(TURRET_BUILD_BASE_COST * Math.pow(2, this.turretsBuilt));
+  }
 
-    public spendMetal(amount: number): boolean {
-        if (this.resources.iron < amount) return false;
-        this.resources.iron -= amount;
-        return true;
-    }
+  public getFreezeTurretBuildCost(): number {
+    return Math.ceil(this.getTurretBuildCost() * FREEZE_TURRET_COST_MULTIPLIER);
+  }
 
-    public spendStone(amount: number): boolean {
-        if (this.resources.stone < amount) return false;
-        this.resources.stone -= amount;
-        return true;
-    }
+  public getTurretUnlockCost(level: number): number {
+    if (level === 2) return TURRET_CONFIGS.mk2.unlockCost;
+    if (level === 3) return TURRET_CONFIGS.mk3.unlockCost;
+    return Infinity;
+  }
 
-    public spendAny(amount: number): boolean {
-        const totalResources = this.resources.iron + this.resources.stone;
-        if (totalResources < amount) return false;
+  public getFreezeTurretUnlockCost(): number {
+    return TURRET_CONFIGS.freeze.unlockCost;
+  }
 
-        const ironCost = Math.min(amount, this.resources.iron);
-        const stoneCost = amount - ironCost;
-        this.resources.iron -= ironCost;
-        this.resources.stone -= stoneCost;
-        return true;
-    }
+  public canAffordCost(cost: ResourceCost): boolean {
+    return this.resources.iron >= cost.iron && this.resources.stone >= cost.stone;
+  }
 
-    public canAffordCost(cost: ResourceCost): boolean {
-        return this.resources.iron >= cost.iron && this.resources.stone >= cost.stone;
-    }
+  public spendCost(cost: ResourceCost): boolean {
+    if (!this.canAffordCost(cost)) return false;
+    this.resources.iron -= cost.iron;
+    this.resources.stone -= cost.stone;
+    return true;
+  }
 
-    public spendCost(cost: ResourceCost): boolean {
-        if (!this.canAffordCost(cost)) return false;
-        this.resources.iron -= cost.iron;
-        this.resources.stone -= cost.stone;
-        return true;
-    }
+  public recordDrillBuilt(): void {
+    this.drillsBuilt++;
+  }
 
-    public recordDrillBuilt(): void {
-        this.drillsBuilt++;
-    }
+  public recordTurretBuilt(): void {
+    this.turretsBuilt++;
+  }
 
-    public recordTurretBuilt(): void {
-        this.turretsBuilt++;
-    }
+  public unlockTurret(level: number): boolean {
+    if (level < 2 || level > 3) return false;
+    if (level !== this.unlockedTurretLevel + 1) return false;
 
-    public unlockTurret(level: number): boolean {
-        if (level !== this.unlockedTurretLevel + 1) return false;
-        const cost = this.getTurretUnlockCost(level);
-        if (!this.spendMetal(cost)) return false;
-        this.unlockedTurretLevel = level;
-        return true;
-    }
+    const cost = this.getTurretUnlockCost(level);
+    if (this.resources.iron < cost) return false;
+
+    this.resources.iron -= cost;
+    this.unlockedTurretLevel = level;
+    return true;
+  }
+
+  public unlockFreezeTurret(): boolean {
+    if (this.freezeTurretUnlocked) return false;
+    const cost = this.getFreezeTurretUnlockCost();
+    if (this.resources.iron < cost) return false;
+
+    this.resources.iron -= cost;
+    this.freezeTurretUnlocked = true;
+    return true;
+  }
 }

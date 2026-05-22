@@ -3,6 +3,7 @@ import { Drill } from './Drill';
 import { Wall } from './Wall';
 import { Turret } from './Turret';
 import { Bomb } from './Bomb';
+import type { TurretType } from '../core/BuildingConfigs';
 
 const REGISTRY: Record<string, new (scene: Phaser.Scene, x: number, y: number, resourceType?: string) => Building> = {
   drill: Drill,
@@ -25,9 +26,9 @@ export function createTurret(
   scene: Phaser.Scene,
   x: number,
   y: number,
-  level: number
+  type: TurretType
 ): Turret {
-  return new Turret(scene, x, y, level);
+  return new Turret(scene, x, y, type);
 }
 
 export function createBomb(

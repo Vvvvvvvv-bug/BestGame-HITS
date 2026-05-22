@@ -1,4 +1,4 @@
-﻿import { TURRET_CONFIGS } from '../core/BuildingConfigs';
+﻿import { TURRET_CONFIGS, type TurretType } from '../core/BuildingConfigs';
 import { Enemy } from '../enemies/Enemy';
 import type { Attackable } from '../core/Attackable';
 import { playSfx } from '../audio/Sfx';
@@ -6,15 +6,19 @@ import { playSfx } from '../audio/Sfx';
 export class Turret implements Attackable {
   public sprite: Phaser.GameObjects.Sprite;
   private cooldown = 0;
-  private readonly stats: typeof TURRET_CONFIGS[number];
+  private readonly type: TurretType;
+  private readonly stats: (typeof TURRET_CONFIGS)[TurretType];
   private readonly scene: Phaser.Scene;
 
   healthPoints: number;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, level: number) {
+  constructor(scene: Phaser.Scene, x: number, y: number, type: TurretType) {
     this.scene = scene;
-    this.stats = TURRET_CONFIGS[level - 1] ?? TURRET_CONFIGS[0];
-    this.sprite = scene.add.sprite(x, y, `turret-${this.stats.level}`);
+    this.type = type;
+    this.stats = TURRET_CONFIGS[type];
+
+    const texture = this.type === 'freeze' ? 'turret-freeze' : `turret-${this.stats.level}`;
+    this.sprite = scene.add.sprite(x, y, texture);
     this.sprite.setOrigin(0.5, 0.5);
     this.sprite.setDepth(24);
     this.sprite.setDisplaySize(32, 32);
@@ -31,6 +35,11 @@ export class Turret implements Attackable {
 
     if (this.cooldown > 0) return;
     this.cooldown = 1000 / this.stats.fireRate;
+
+    if (this.type === 'freeze') {
+      const freezePerShot = 1000 / this.stats.fireRate;
+      target.applyFreezeCharge(freezePerShot);
+    }
 
     const dead = target.takeDamage(this.stats.damage);
     this.drawShot(target);
@@ -72,18 +81,21 @@ export class Turret implements Attackable {
     const endX = target.sprite.x;
     const endY = target.sprite.y;
 
-    const tracerCore = this.scene.add.line(0, 0, startX, startY, endX, endY, 0xcff6ff, 0.95)
+    const coreColor = this.type === 'freeze' ? 0xb8e6ff : 0xcff6ff;
+    const glowColor = this.type === 'freeze' ? 0x59b8ff : 0x61d8ff;
+
+    const tracerCore = this.scene.add.line(0, 0, startX, startY, endX, endY, coreColor, 0.95)
       .setOrigin(0, 0)
       .setLineWidth(2.6, 2.6)
       .setDepth(25);
 
-    const tracerGlow = this.scene.add.line(0, 0, startX, startY, endX, endY, 0x61d8ff, 0.48)
+    const tracerGlow = this.scene.add.line(0, 0, startX, startY, endX, endY, glowColor, 0.48)
       .setOrigin(0, 0)
       .setLineWidth(6.5, 6.5)
       .setDepth(24);
 
-    const muzzleFlash = this.scene.add.circle(startX, startY, 4, 0xb8f4ff, 0.95).setDepth(26);
-    const hitFlash = this.scene.add.circle(endX, endY, 5, 0xfff0bf, 0.9).setDepth(26);
+    const muzzleFlash = this.scene.add.circle(startX, startY, 4, coreColor, 0.95).setDepth(26);
+    const hitFlash = this.scene.add.circle(endX, endY, 5, this.type === 'freeze' ? 0xaed8ff : 0xfff0bf, 0.9).setDepth(26);
 
     this.scene.tweens.add({
       targets: [tracerCore, tracerGlow, muzzleFlash, hitFlash],

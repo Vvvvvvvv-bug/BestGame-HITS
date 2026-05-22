@@ -1,9 +1,8 @@
-import type { Attackable } from './Attackable';
+﻿import type { Attackable } from './Attackable';
 import { Enemy } from '../enemies/Enemy';
 import type { Player } from '../player/Player';
 
 export class CombatManager {
-
   update(
     delta: number,
     enemies: Set<Enemy>,
@@ -14,30 +13,28 @@ export class CombatManager {
     const deadEnemies: Enemy[] = [];
     const targetArray = Array.from(targets).filter((t) => t.healthPoints > 0);
     const lureTargetArray = Array.from(lureTargets).filter((t) => t.healthPoints > 0);
-
-    for (const enemy of enemies) {
-      const currentTarget = enemy.getAttackTarget();
-      const lureTarget = this.findNearestLureTarget(enemy, lureTargetArray);
-
-      if (lureTarget && currentTarget !== lureTarget) {
-        enemy.setTarget(lureTarget.sprite.x, lureTarget.sprite.y);
-        enemy.setAttackTarget(lureTarget);
-      } else if (currentTarget && lureTargetArray.includes(currentTarget as Attackable & { lureRadius: number }) && currentTarget !== lureTarget) {
-        enemy.clearTarget();
-      }
     const collisionTargets = player.healthPoints > 0 ? [...targetArray, player] : targetArray;
 
     for (const enemy of enemies) {
       enemy.setCollisionTargets(collisionTargets);
 
+      const currentTarget = enemy.getAttackTarget();
+      const nearestLure = this.findNearestLureTarget(enemy, lureTargetArray);
+      if (nearestLure && currentTarget !== nearestLure) {
+        enemy.setTarget(nearestLure.sprite.x, nearestLure.sprite.y);
+        enemy.setAttackTarget(nearestLure);
+      } else if (
+        currentTarget &&
+        lureTargetArray.includes(currentTarget as Attackable & { lureRadius: number }) &&
+        currentTarget !== nearestLure
+      ) {
+        enemy.clearTarget();
+      }
+
       if (enemy.needsTarget()) {
         const target = this.findBestTarget(enemy, targetArray, player, lureTargetArray);
         if (target) {
-          if (target === player) {
-            enemy.setTarget(player.sprite.x, player.sprite.y);
-          } else {
-            enemy.setTarget(target.sprite.x, target.sprite.y);
-          }
+          enemy.setTarget(target.sprite.x, target.sprite.y);
           enemy.setAttackTarget(target);
         }
       }
@@ -59,25 +56,18 @@ export class CombatManager {
   ): Attackable | null {
     const lureTarget = this.findNearestLureTarget(enemy, lureTargets);
     if (lureTarget) return lureTarget;
+
     const aliveTargets = targets.filter((t) => t.healthPoints > 0);
     const blockerToBase = this.findBlockerOnPath(enemy, player, aliveTargets);
+    if (blockerToBase) return blockerToBase;
 
-    if (blockerToBase) {
-      return blockerToBase;
-    }
-
-    if (player.healthPoints > 0) {
-      return player;
-    }
+    if (player.healthPoints > 0) return player;
 
     let bestTarget: Attackable | null = null;
     let minDistance = Infinity;
 
     for (const target of aliveTargets) {
-      const distance = this.getDistance(
-        enemy.sprite.x, enemy.sprite.y,
-        target.sprite.x, target.sprite.y
-      );
+      const distance = this.getDistance(enemy.sprite.x, enemy.sprite.y, target.sprite.x, target.sprite.y);
       if (distance < minDistance) {
         minDistance = distance;
         bestTarget = target;
@@ -95,10 +85,7 @@ export class CombatManager {
     let minDistance = Infinity;
 
     for (const target of lureTargets) {
-      const distance = this.getDistance(
-        enemy.sprite.x, enemy.sprite.y,
-        target.sprite.x, target.sprite.y
-      );
+      const distance = this.getDistance(enemy.sprite.x, enemy.sprite.y, target.sprite.x, target.sprite.y);
       if (distance <= target.lureRadius && distance < minDistance) {
         minDistance = distance;
         bestTarget = target;
@@ -112,11 +99,7 @@ export class CombatManager {
     return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
   }
 
-  private findBlockerOnPath(
-    enemy: Enemy,
-    player: Player,
-    targets: Attackable[]
-  ): Attackable | null {
+  private findBlockerOnPath(enemy: Enemy, player: Player, targets: Attackable[]): Attackable | null {
     const ex = enemy.sprite.x;
     const ey = enemy.sprite.y;
     const px = player.sprite.x;

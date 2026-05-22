@@ -14,6 +14,7 @@ import { TurretSelector } from './ui/TurretSelector';
 
 import { Drill } from './buildings/Drill';
 import { BUILDING_CONFIGS } from './core/BuildingConfigs';
+import type { TurretType } from './core/BuildingConfigs';
 import { UI_COLORS, UI_DEPTH } from './ui/uiTheme';
 import { BuildingManager } from './core/BuildingManager';
 import { CombatManager } from './core/CombatManager';
@@ -115,8 +116,7 @@ export default class MainScene extends Phaser.Scene {
     this.load.svg('turret-1', 'src/assets/turret-1.svg', { width: 96, height: 96 });
     this.load.svg('turret-2', 'src/assets/turret-2.svg', { width: 96, height: 96 });
     this.load.svg('turret-3', 'src/assets/turret-3.svg', { width: 96, height: 96 });
-    this.load.svg('turret-4', 'src/assets/turret-4.svg', { width: 96, height: 96 });
-    this.load.svg('turret-5', 'src/assets/turret-5.svg', { width: 96, height: 96 });
+    this.load.svg('turret-freeze', 'src/assets/turret-freeze.svg', { width: 96, height: 96 });
     // 6 тайлов по CELL_SIZE (земля/камень/руда + 3 ландшафтных): растеризуем SVG ровно
     // в размер сетки, чтобы нарезка 32×32 попадала в целые тайлы, а не в их углы.
     this.load.svg(this.TILESET_KEY, 'src/assets/tileset.svg', { width: this.CELL_SIZE * 6, height: this.CELL_SIZE });
@@ -157,8 +157,8 @@ export default class MainScene extends Phaser.Scene {
 
     this.bombSelector = new BombSelector();
 
-    this.turretSelector = new TurretSelector(this, this.gameState, (level: number) => {
-      this.selectedType = `turret_mk${level}`;
+    this.turretSelector = new TurretSelector(this, this.gameState, (type: TurretType) => {
+      this.selectedType = type === 'freeze' ? 'turret_freeze' : `turret_mk${type.replace('mk', '')}`;
       this.selectingBomb = false;
     });
     this.createSkipPhaseButton();
@@ -538,7 +538,7 @@ export default class MainScene extends Phaser.Scene {
       return;
     }
 
-    if (this.selectedType.startsWith('turret_mk')) {
+    if (this.selectedType.startsWith('turret_mk') || this.selectedType === 'turret_freeze') {
       this.placeTurret(gridX, gridY);
       return;
     }
@@ -573,9 +573,10 @@ export default class MainScene extends Phaser.Scene {
   }
 
   private placeTurret(gridX: number, gridY: number): void {
-    const level = Number(this.selectedType.replace('turret_mk', ''));
-    const cost = this.gameState.getTurretBuildCost();
-    if (!Number.isFinite(level) || level <= 0 || this.gameState.resources.iron < cost) {
+    const isFreeze = this.selectedType === 'turret_freeze';
+    const level = isFreeze ? 0 : Number(this.selectedType.replace('turret_mk', ''));
+    const cost = isFreeze ? this.gameState.getFreezeTurretBuildCost() : this.gameState.getTurretBuildCost();
+    if ((!isFreeze && (!Number.isFinite(level) || level <= 0 || level > 3)) || this.gameState.resources.iron < cost) {
       playSfx(this, 'ui-deny');
       return;
     }
@@ -585,7 +586,8 @@ export default class MainScene extends Phaser.Scene {
 
     const worldX = this.getWorldXFromGrid(gridX);
     const worldY = gridY * this.CELL_SIZE + this.CELL_SIZE / 2;
-    this.buildingManager.addTurret(this.getGridKey(gridX, gridY), createTurret(this, worldX, worldY, level));
+    const turretType: TurretType = isFreeze ? 'freeze' : (`mk${level}` as TurretType);
+    this.buildingManager.addTurret(this.getGridKey(gridX, gridY), createTurret(this, worldX, worldY, turretType));
     this.ghost.setFillStyle(this.GHOST_COLOR_BLOCKED, 0.4);
     playSfx(this, 'build');
   }

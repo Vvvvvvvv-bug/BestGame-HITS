@@ -1,0 +1,12 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="iceBody" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d7f3ff"/>
+      <stop offset="1" stop-color="#5cb8ff"/>
+    </linearGradient>
+  </defs>
+  <circle cx="24" cy="28" r="13" fill="#13263f" stroke="#6dd5ff" stroke-width="2"/>
+  <path d="M24 10 27 16h6l-5 4 2 7-6-4-6 4 2-7-5-4h6z" fill="url(#iceBody)" stroke="#e8fbff" stroke-width="1.2"/>
+  <circle cx="24" cy="28" r="5.2" fill="#9fe5ff" stroke="#e6fcff" stroke-width="1"/>
+  <rect x="22" y="6" width="4" height="9" rx="2" fill="#bff1ff"/>
+</svg>
