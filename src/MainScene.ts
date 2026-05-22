@@ -22,6 +22,7 @@ import { playSfx } from './audio/Sfx';
 import { Airdrop } from './airdrops/Airdrop';
 import { Zealot } from './enemies/Zealot';
 import { QuizModal } from './ui/QuizModal';
+import { PauseModal } from './ui/PauseModal';
 import { pickRandomQuestion } from './quiz/questions';
 export default class MainScene extends Phaser.Scene {
   private readonly CELL_SIZE = 32;
@@ -38,6 +39,10 @@ export default class MainScene extends Phaser.Scene {
   private enemySpawner!: EnemySpawner;
   private airdrops: Set<Airdrop> = new Set();
   private activeQuiz?: QuizModal;
+  private activePauseModal?: PauseModal;
+  private isPaused = false;
+  private lastPauseTime = 0;
+  private readonly PAUSE_COOLDOWN = 350;
   private readonly AIRDROP_QUIZ_REWARD = 1; // очков исследования за верный ответ
   private player!: Player;
   private playerHealthFill!: Phaser.GameObjects.Rectangle;
@@ -226,6 +231,17 @@ export default class MainScene extends Phaser.Scene {
       this.airdrops.clear();
       this.activeQuiz?.destroy();
       this.activeQuiz = undefined;
+      this.activePauseModal?.destroy();
+      this.activePauseModal = undefined;
+    });
+
+    // ESC — пауза / выход в меню; Enter — подтвердить выход (как «Да»)
+    this.input.keyboard?.on('keydown', (event: KeyboardEvent) => {
+      if (event.key === 'Escape' || event.keyCode === 27) {
+        this.togglePause();
+      } else if ((event.key === 'Enter' || event.keyCode === 13) && this.activePauseModal) {
+        this.quitToMenu();
+      }
     });
 
     // Должно идти последним: все HUD-объекты уже созданы.
@@ -557,7 +573,7 @@ export default class MainScene extends Phaser.Scene {
   private handlePointerMove(pointer: Phaser.Input.Pointer): void {
     this.hasPointerMoved = true;
 
-    if (this.activeQuiz) {            // окно викторины открыто — мир не реагирует
+    if (this.activeQuiz || this.activePauseModal) {            // окно открыто — мир не реагирует
       this.ghost.setVisible(false);
       return;
     }
@@ -588,7 +604,7 @@ export default class MainScene extends Phaser.Scene {
   }
 
   private handlePointerDown(pointer: Phaser.Input.Pointer): void {
-    if (this.activeQuiz) return;             // окно викторины перехватывает ввод
+    if (this.activeQuiz || this.activePauseModal) return;             // окно перехватывает ввод
     if (pointer.button !== 0) return;        // только ЛКМ (средняя — для drag-pan)
     if (this.isPointerOverPanel(pointer)) return; // клики по HUD не строят сквозь панель
 
@@ -811,7 +827,7 @@ export default class MainScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
-    if (this.victoryShown || this.gameOverShown) return;
+    if (this.isPaused || this.victoryShown || this.gameOverShown) return;
 
     this.updateCamera(delta);
 
@@ -1013,6 +1029,40 @@ export default class MainScene extends Phaser.Scene {
     if (this.enemySpawner.isSpawning() || this.enemies.size > 0) return;
 
     this.waveManager.completeWave();
+  }
+
+  private togglePause(): void {
+    if (this.gameOverShown || this.victoryShown) return;
+
+    if (this.activePauseModal) {
+      this.resumeGame();
+      return;
+    }
+
+    const now = performance.now();
+    if (now - this.lastPauseTime < this.PAUSE_COOLDOWN) return;
+    this.lastPauseTime = now;
+
+    this.isPaused = true;
+    const modal = new PauseModal(
+      this,
+      () => this.quitToMenu(),
+      () => this.resumeGame()
+    );
+    this.assignToHud(modal.getObjects());
+    this.activePauseModal = modal;
+  }
+
+  private resumeGame(): void {
+    this.isPaused = false;
+    this.activePauseModal?.destroy();
+    this.activePauseModal = undefined;
+  }
+
+  private quitToMenu(): void {
+    this.activePauseModal?.destroy();
+    this.activePauseModal = undefined;
+    this.scene.start('MenuScene');
   }
 
   private showVictoryScreen(): void {
