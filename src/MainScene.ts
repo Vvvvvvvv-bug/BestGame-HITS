@@ -88,6 +88,8 @@ export default class MainScene extends Phaser.Scene {
   private baseIncomeTimer = 0;
   private readonly BASE_INCOME_INTERVAL = 1800;
   private readonly BASE_INCOME_AMOUNT = 10;
+  private readonly WAVE_INCOME_INTERVAL = 2000;
+  private readonly WAVE_INCOME_AMOUNT = 5;
   private airdropSpawnTimer = 0;
   private nextAirdropSpawnDelay = 0;
   private readonly AIRDROP_LURE_RADIUS_BLOCKS = 15;
@@ -881,14 +883,18 @@ export default class MainScene extends Phaser.Scene {
   }
 
   private updateBaseIncome(delta: number): void {
-    if (this.currentPhase === 'wave' || this.currentPhase === 'gameover' || this.currentPhase === 'victory') return;
+    if (this.currentPhase === 'gameover' || this.currentPhase === 'victory') return;
+
+    const isWave = this.currentPhase === 'wave';
+    const interval = isWave ? this.WAVE_INCOME_INTERVAL : this.BASE_INCOME_INTERVAL;
+    const amount = isWave ? this.WAVE_INCOME_AMOUNT : this.BASE_INCOME_AMOUNT;
 
     this.baseIncomeTimer += delta;
-    if (this.baseIncomeTimer < this.BASE_INCOME_INTERVAL) return;
+    if (this.baseIncomeTimer < interval) return;
 
     this.baseIncomeTimer = 0;
-    eventBus.emit('resource-mined', { type: 'iron', amount: this.BASE_INCOME_AMOUNT });
-    eventBus.emit('resource-mined', { type: 'stone', amount: this.BASE_INCOME_AMOUNT });
+    eventBus.emit('resource-mined', { type: 'iron', amount: amount });
+    eventBus.emit('resource-mined', { type: 'stone', amount: amount });
   }
 
   private updateAirdrops(delta: number): void {
