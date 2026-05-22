@@ -1,5 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
-  <defs><linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1a2b4d"/><stop offset="1" stop-color="#071226"/></linearGradient></defs>
-  <rect x="6" y="9" width="36" height="30" rx="5" fill="url(#b)" stroke="#4cc9f0" stroke-opacity=".6" stroke-width="3"/>
-  <path d="M11 18h26M11 29h26M18 10v28M30 10v28" stroke="#243a63" stroke-width="3"/>
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="wallBody" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#23395c"/>
+      <stop offset="0.55" stop-color="#122745"/>
+      <stop offset="1" stop-color="#0a172f"/>
+    </linearGradient>
+    <linearGradient id="wallPlate" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#315786"/>
+      <stop offset="1" stop-color="#173459"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="4" y="7" width="40" height="34" rx="6" fill="url(#wallBody)" stroke="#66dfff" stroke-opacity="0.78" stroke-width="2.4"/>
+  <rect x="8" y="11" width="32" height="26" rx="4" fill="#0d1e38" stroke="#2e4f7c" stroke-width="1.6"/>
+
+  <rect x="10" y="14" width="9" height="8" rx="1.4" fill="url(#wallPlate)"/>
+  <rect x="20" y="14" width="9" height="8" rx="1.4" fill="url(#wallPlate)"/>
+  <rect x="30" y="14" width="8" height="8" rx="1.4" fill="url(#wallPlate)"/>
+
+  <rect x="10" y="24" width="13" height="10" rx="1.4" fill="url(#wallPlate)"/>
+  <rect x="24" y="24" width="14" height="10" rx="1.4" fill="url(#wallPlate)"/>
+
+  <circle cx="9" cy="10" r="1" fill="#a9f1ff"/>
+  <circle cx="39" cy="10" r="1" fill="#a9f1ff"/>
+  <circle cx="9" cy="38" r="1" fill="#a9f1ff"/>
+  <circle cx="39" cy="38" r="1" fill="#a9f1ff"/>
 </svg>

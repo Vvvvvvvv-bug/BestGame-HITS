@@ -1,11 +1,11 @@
-import { eventBus } from "./EventBus";
+﻿import { eventBus } from "./EventBus";
 import { BUILDING_CONFIGS, scaleCost, TURRET_BUILD_BASE_COST, TURRET_CONFIGS } from "./BuildingConfigs";
 import type { ResourceCost } from "./BuildingConfigs";
 
 
 export class GameState {
     public resources = {
-        iron: 200,
+        iron: 1200,
         stone: 1000
     };
     public drillsBuilt = 0;
@@ -88,3 +88,4 @@ export class GameState {
         return true;
     }
 }
+

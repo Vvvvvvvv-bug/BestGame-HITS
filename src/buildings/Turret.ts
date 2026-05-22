@@ -1,6 +1,7 @@
 import { TURRET_CONFIGS } from '../core/BuildingConfigs';
 import { Enemy } from '../enemies/Enemy';
 import type { Attackable } from '../core/Attackable';
+import { playSfx } from '../audio/Sfx';
 
 export class Turret implements Attackable {
   public sprite: Phaser.GameObjects.Sprite;
@@ -33,6 +34,7 @@ export class Turret implements Attackable {
 
     const dead = target.takeDamage(this.stats.damage);
     this.drawShot(target);
+    playSfx(this.scene, 'turret-shot');
     if (dead) {
       enemies.delete(target);
       target.destroy();

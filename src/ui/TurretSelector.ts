@@ -1,24 +1,29 @@
-import { GameState } from '../core/GameState';
+﻿import { GameState } from '../core/GameState';
 import { TURRET_CONFIGS } from '../core/BuildingConfigs';
 import { createHudPanel, TEXT_STYLE, UI_COLORS, UI_DEPTH } from './uiTheme';
+import { playSfx } from '../audio/Sfx';
 
 export class TurretSelector {
   updateAffordability(): void {
     this.update();
   }
+
   private buttons: Map<number, Phaser.GameObjects.Container> = new Map();
   private statusTexts: Map<number, Phaser.GameObjects.Text> = new Map();
   private selectedLevel = 0;
   private gameState: GameState;
   private onSelect: (level: number) => void;
+  private scene: Phaser.Scene;
 
   constructor(
     scene: Phaser.Scene,
     gameState: GameState,
     onSelect: (level: number) => void
   ) {
+    this.scene = scene;
     this.gameState = gameState;
     this.onSelect = onSelect;
+
     const panelX = scene.scale.width - 128;
     const startX = panelX - 48;
     const startY = 402;
@@ -66,6 +71,7 @@ export class TurretSelector {
         event.stopPropagation();
         this.handleClick(turret.level);
       });
+
       bg.on('pointerover', () => bg.setStrokeStyle(2, UI_COLORS.selected));
       bg.on('pointerout', () => {
         if (this.selectedLevel !== turret.level) {
@@ -115,9 +121,14 @@ export class TurretSelector {
   private handleClick(level: number): void {
     const unlocked = level <= this.gameState.unlockedTurretLevel;
     if (!unlocked) {
-      if (!this.gameState.unlockTurret(level)) return;
+      if (!this.gameState.unlockTurret(level)) {
+        playSfx(this.scene, 'ui-deny');
+        return;
+      }
+      playSfx(this.scene, 'unlock');
     }
 
+    playSfx(this.scene, 'ui-click');
     this.selectedLevel = level;
     this.onSelect(level);
     this.update();

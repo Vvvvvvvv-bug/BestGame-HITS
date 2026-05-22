@@ -17,6 +17,7 @@ import { BUILDING_CONFIGS } from './core/BuildingConfigs';
 import { UI_COLORS, UI_DEPTH } from './ui/uiTheme';
 import { BuildingManager } from './core/BuildingManager';
 import { CombatManager } from './core/CombatManager';
+import { playSfx } from './audio/Sfx';
 export default class MainScene extends Phaser.Scene {
   private readonly CELL_SIZE = 32;
   private readonly LEFT_PANEL_WIDTH = 224;
@@ -58,12 +59,17 @@ export default class MainScene extends Phaser.Scene {
   private bombSelector!: BombSelector;   
   private buildingSelector!: BuildingSelector;
   private turretSelector!: TurretSelector; 
+  private skipPhaseButtonBg!: Phaser.GameObjects.Rectangle;
+  private skipPhaseButtonLabel!: Phaser.GameObjects.Text;
 
   public gameState: GameState = new GameState();
   private selectedType: string = 'drill';
   private selectingBomb: boolean = false;
   private waveManager!: WaveManager;
   private currentPhase: string = 'gathering';
+  private baseIncomeTimer = 0;
+  private readonly BASE_INCOME_INTERVAL = 1800;
+  private readonly BASE_INCOME_AMOUNT = 10;
 
   private readonly TILESET_KEY = 'tileset';
   private readonly TILESET_NAME = 'tileset';
@@ -80,14 +86,24 @@ export default class MainScene extends Phaser.Scene {
     this.load.svg('wall', 'src/assets/wall.svg', { width: 96, height: 96 });
     this.load.svg('bomb', 'src/assets/bomb.svg', { width: 96, height: 96 });
     this.load.svg('enemy', 'src/assets/enemy.svg', { width: 88, height: 88 });
+    this.load.image('ant_idle_1', 'ants_assets/ants_sprite_sheet/4/idle/ant_idle_1.png');
+    this.load.image('ant_idle_2', 'ants_assets/ants_sprite_sheet/4/idle/ant_idle_2.png');
+    this.load.image('ant_idle_3', 'ants_assets/ants_sprite_sheet/4/idle/ant_idle_3.png');
+    this.load.image('ant_idle_4', 'ants_assets/ants_sprite_sheet/4/idle/ant_idle_4.png');
+    this.load.image('ant_walk_1', 'ants_assets/ants_sprite_sheet/4/walk/ant_walk_1.png');
+    this.load.image('ant_walk_2', 'ants_assets/ants_sprite_sheet/4/walk/ant_walk_2.png');
+    this.load.image('ant_walk_3', 'ants_assets/ants_sprite_sheet/4/walk/ant_walk_3.png');
+    this.load.image('ant_attack_1', 'ants_assets/ants_sprite_sheet/4/attack/ant_attack_1.png');
+    this.load.image('ant_attack_2', 'ants_assets/ants_sprite_sheet/4/attack/ant_attack_2.png');
+    this.load.image('ant_attack_3', 'ants_assets/ants_sprite_sheet/4/attack/ant_attack_3.png');
     this.load.svg('turret-1', 'src/assets/turret-1.svg', { width: 96, height: 96 });
     this.load.svg('turret-2', 'src/assets/turret-2.svg', { width: 96, height: 96 });
     this.load.svg('turret-3', 'src/assets/turret-3.svg', { width: 96, height: 96 });
     this.load.svg('turret-4', 'src/assets/turret-4.svg', { width: 96, height: 96 });
     this.load.svg('turret-5', 'src/assets/turret-5.svg', { width: 96, height: 96 });
-    // 3 тайла по CELL_SIZE: растеризуем SVG ровно в размер сетки, чтобы addTilesetImage
-    // (нарезка 32×32) попадала в целые тайлы, а не в их углы (иначе камень обрезается).
-    this.load.svg(this.TILESET_KEY, 'src/assets/tileset.svg', { width: this.CELL_SIZE * 3, height: this.CELL_SIZE });
+    // 6 тайлов по CELL_SIZE (земля/камень/руда + 3 ландшафтных): растеризуем SVG ровно
+    // в размер сетки, чтобы нарезка 32×32 попадала в целые тайлы, а не в их углы.
+    this.load.svg(this.TILESET_KEY, 'src/assets/tileset.svg', { width: this.CELL_SIZE * 6, height: this.CELL_SIZE });
 
     this.load.svg('tile_empty', 'src/assets/tile-empty.svg', { width: 64, height: 64 });
     this.load.svg('tile_iron', 'src/assets/tile-iron.svg', { width: 64, height: 64 });
@@ -128,6 +144,7 @@ export default class MainScene extends Phaser.Scene {
       this.selectedType = `turret_mk${level}`;
       this.selectingBomb = false;
     });
+    this.createSkipPhaseButton();
 
     this.waveUpdateHandler = (data) => {
       if (data.phase === 'victory') {
@@ -137,14 +154,18 @@ export default class MainScene extends Phaser.Scene {
         return;
       }
 
-      if (data.phase === 'wave' && this.currentPhase !== 'wave') {
+      const previousPhase = this.currentPhase;
+      this.currentPhase = data.phase;
+
+      if (data.phase === 'wave' && previousPhase !== 'wave') {
         this.enemySpawner.startWave(data.enemiesInWave, data.waveDuration);
         this.emitEnemiesRemainingUpdate();
-        this.currentPhase = 'wave';
-      } else if (data.phase !== 'wave' && this.currentPhase === 'wave') {
+        playSfx(this, 'phase-wave');
+      } else if (data.phase !== 'wave' && previousPhase === 'wave') {
         this.enemySpawner.stopWave();
-        this.currentPhase = data.phase;
       }
+
+      this.updateSkipPhaseButtonState();
     };
     eventBus.on('wave-update', this.waveUpdateHandler);
 
@@ -158,6 +179,61 @@ export default class MainScene extends Phaser.Scene {
 
     // Должно идти последним: все HUD-объекты уже созданы.
     this.setupCameraLayers();
+  }
+
+  private createSkipPhaseButton(): void {
+    const buttonX = this.LEFT_PANEL_WIDTH / 2;
+    const buttonY = this.scale.height - 42;
+
+    this.skipPhaseButtonBg = this.add.rectangle(buttonX, buttonY, 188, 34, UI_COLORS.panelAlt, 0.98)
+      .setStrokeStyle(1, UI_COLORS.border, 0.95)
+      .setDepth(UI_DEPTH + 1);
+
+    this.skipPhaseButtonLabel = this.add.text(buttonX, buttonY, 'Пропустить этап', {
+      fontFamily: '"Inter", "Segoe UI", Arial, sans-serif',
+      fontSize: '15px',
+      color: UI_COLORS.text,
+      resolution: 2,
+    }).setOrigin(0.5).setDepth(UI_DEPTH + 2);
+
+    this.skipPhaseButtonBg.setInteractive({ useHandCursor: true });
+
+    this.skipPhaseButtonBg.on('pointerover', () => {
+      if (!this.skipPhaseButtonBg.input?.enabled) return;
+      this.skipPhaseButtonBg.setFillStyle(0x213248, 1);
+    });
+
+    this.skipPhaseButtonBg.on('pointerout', () => {
+      if (!this.skipPhaseButtonBg.input?.enabled) return;
+      this.skipPhaseButtonBg.setFillStyle(UI_COLORS.panelAlt, 0.98);
+    });
+
+    this.skipPhaseButtonBg.on('pointerdown', () => {
+      if (this.waveManager.skipPreparationPhase()) {
+        playSfx(this, 'ui-click');
+        this.updateSkipPhaseButtonState();
+      }
+    });
+
+    this.updateSkipPhaseButtonState();
+  }
+
+  private updateSkipPhaseButtonState(): void {
+    if (!this.skipPhaseButtonBg || !this.skipPhaseButtonLabel) return;
+
+    const canSkip = this.currentPhase === 'gathering' || this.currentPhase === 'building';
+    this.skipPhaseButtonBg.input!.enabled = canSkip;
+
+    if (canSkip) {
+      this.skipPhaseButtonBg.setFillStyle(UI_COLORS.panelAlt, 0.98);
+      this.skipPhaseButtonBg.setStrokeStyle(1, UI_COLORS.border, 0.95);
+      this.skipPhaseButtonLabel.setColor(UI_COLORS.text);
+      return;
+    }
+
+    this.skipPhaseButtonBg.setFillStyle(0x141a24, 0.85);
+    this.skipPhaseButtonBg.setStrokeStyle(1, UI_COLORS.borderMuted, 0.75);
+    this.skipPhaseButtonLabel.setColor(UI_COLORS.mutedText);
   }
 
   // === RTS-камера =========================================================
@@ -254,10 +330,9 @@ export default class MainScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const visibleCols = Math.floor((width - this.LEFT_PANEL_WIDTH - this.RIGHT_PANEL_WIDTH) / this.CELL_SIZE);
     const visibleRows = Math.floor(height / this.CELL_SIZE);
-    // Карта заведомо больше видимой области — это и даёт простор для RTS-скролла.
-    // Берём максимум из «видимое +N клеток» и «видимое ×1.4», чтобы скролл был на любом мониторе.
-    this.cols = Math.max(visibleCols + 16, Math.round(visibleCols * 1.4));
-    this.rows = Math.max(visibleRows + 10, Math.round(visibleRows * 1.4));
+    // Карта заметно больше видимой области — простор для RTS-скролла на любом мониторе.
+    this.cols = Math.max(visibleCols + 32, Math.round(visibleCols * 2));
+    this.rows = Math.max(visibleRows + 22, Math.round(visibleRows * 2));
   }
 
   private setupSidebar(): void {
@@ -303,9 +378,10 @@ export default class MainScene extends Phaser.Scene {
         }
 
         const r = Math.random();
-        if (r < 0.05) rowData.push(2); 
-        else if (r < 0.15) rowData.push(1); 
-        else rowData.push(0); 
+        if (r < 0.025) rowData.push(2);                            // руда (было 5% → вдвое меньше)
+        else if (r < 0.075) rowData.push(1);                       // камень (было 10% → вдвое меньше)
+        else if (r < 0.225) rowData.push(3 + Math.floor(Math.random() * 3)); // ландшафт: трещины/галька/мох
+        else rowData.push(0);                                      // чистая земля
       }
       data.push(rowData);
     }
@@ -438,7 +514,10 @@ export default class MainScene extends Phaser.Scene {
   }
 
   placeBuilding(gridX: number, gridY: number): void {
-    if (this.isOccupied(gridX, gridY)) return;
+    if (this.isOccupied(gridX, gridY)) {
+      playSfx(this, 'ui-deny');
+      return;
+    }
 
     if (this.selectedType.startsWith('turret_mk')) {
       this.placeTurret(gridX, gridY);
@@ -453,10 +532,16 @@ export default class MainScene extends Phaser.Scene {
       else if (tile.index === 2) resourceToMine = 'iron';
     }
 
-    if (this.selectedType === 'drill' && !resourceToMine) return; 
+    if (this.selectedType === 'drill' && !resourceToMine) {
+      playSfx(this, 'ui-deny');
+      return;
+    }
 
     const cost = this.selectedType === 'drill' ? this.gameState.getDrillCost() : BUILDING_CONFIGS[this.selectedType as keyof typeof BUILDING_CONFIGS]?.cost;
-    if (!cost || !this.gameState.spendCost(cost)) return;
+    if (!cost || !this.gameState.spendCost(cost)) {
+      playSfx(this, 'ui-deny');
+      return;
+    }
 
     const worldX = this.getWorldXFromGrid(gridX);
     const worldY = gridY * this.CELL_SIZE + this.CELL_SIZE / 2;
@@ -465,12 +550,16 @@ export default class MainScene extends Phaser.Scene {
     this.buildingManager.addBuilding(this.getGridKey(gridX, gridY), building);
     if (this.selectedType === 'drill') this.gameState.recordDrillBuilt();
     this.ghost.setFillStyle(this.GHOST_COLOR_BLOCKED, 0.4);
+    playSfx(this, 'build');
   }
 
   private placeTurret(gridX: number, gridY: number): void {
     const level = Number(this.selectedType.replace('turret_mk', ''));
     const cost = this.gameState.getTurretBuildCost();
-    if (!Number.isFinite(level) || level <= 0 || this.gameState.resources.iron < cost) return;
+    if (!Number.isFinite(level) || level <= 0 || this.gameState.resources.iron < cost) {
+      playSfx(this, 'ui-deny');
+      return;
+    }
 
     this.gameState.resources.iron -= cost;
     this.gameState.recordTurretBuilt();
@@ -479,13 +568,20 @@ export default class MainScene extends Phaser.Scene {
     const worldY = gridY * this.CELL_SIZE + this.CELL_SIZE / 2;
     this.buildingManager.addTurret(this.getGridKey(gridX, gridY), createTurret(this, worldX, worldY, level));
     this.ghost.setFillStyle(this.GHOST_COLOR_BLOCKED, 0.4);
+    playSfx(this, 'build');
   }
 
   placeBomb(gridX: number, gridY: number): void {
-    if (this.isOccupied(gridX, gridY)) return;
+    if (this.isOccupied(gridX, gridY)) {
+      playSfx(this, 'ui-deny');
+      return;
+    }
 
     const cost = BUILDING_CONFIGS.bomb.cost;
-    if (this.gameState.resources.iron < cost.iron || this.gameState.resources.stone < cost.stone) return;
+    if (this.gameState.resources.iron < cost.iron || this.gameState.resources.stone < cost.stone) {
+      playSfx(this, 'ui-deny');
+      return;
+    }
     this.gameState.resources.iron -= cost.iron;
     this.gameState.resources.stone -= cost.stone;
 
@@ -504,6 +600,7 @@ export default class MainScene extends Phaser.Scene {
       this.buildingManager.removeBomb(bombKey);
     });
     this.buildingManager.addBomb(bombKey, bomb);
+    playSfx(this, 'build');
   }
 
   private isOccupied(gridX: number, gridY: number): boolean {
@@ -599,10 +696,22 @@ export default class MainScene extends Phaser.Scene {
     }
 
     this.completeWaveIfCleared();
+    this.updateBaseIncome(delta);
     this.emitEnemiesRemainingUpdate();
     this.resourcePanel.update(this.gameState.resources);
     this.buildingSelector.update();
     this.turretSelector.update();
+  }
+
+  private updateBaseIncome(delta: number): void {
+    if (this.currentPhase === 'wave' || this.currentPhase === 'gameover' || this.currentPhase === 'victory') return;
+
+    this.baseIncomeTimer += delta;
+    if (this.baseIncomeTimer < this.BASE_INCOME_INTERVAL) return;
+
+    this.baseIncomeTimer = 0;
+    eventBus.emit('resource-mined', { type: 'iron', amount: this.BASE_INCOME_AMOUNT });
+    eventBus.emit('resource-mined', { type: 'stone', amount: this.BASE_INCOME_AMOUNT });
   }
 
   private emitEnemiesRemainingUpdate(): void {

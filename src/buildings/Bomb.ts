@@ -1,6 +1,7 @@
 import { EXPLOSIVE_CONFIG } from '../core/BuildingConfigs';
 import { Enemy } from '../enemies/Enemy';
 import type { Attackable } from '../core/Attackable';
+import { playSfx } from '../audio/Sfx';
 
 export class Bomb implements Attackable {
   sprite: Phaser.GameObjects.Sprite;
@@ -36,6 +37,7 @@ export class Bomb implements Attackable {
 
     this.canDetonate = false;
     this.lastDetonatedTime = 0;
+    playSfx(this.scene, 'explosion');
 
     // Сообщаем сцене о взрыве, чтобы она нанесла урон врагам
     this.onDetonate(this);

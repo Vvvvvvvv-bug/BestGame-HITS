@@ -58,6 +58,23 @@ export class WaveManager {
     });
   }
 
+  public skipPreparationPhase(): boolean {
+    if (this.currentPhase !== 'gathering' && this.currentPhase !== 'building') return false;
+
+    this.startPhase('wave');
+    const duration = this.getCurrentPhaseDuration();
+
+    eventBus.emit('wave-update', {
+      phase: this.currentPhase,
+      waveNumber: this.currentWave,
+      timeLeft: duration,
+      waveDuration: duration,
+      enemiesInWave: this.enemiesCount
+    });
+
+    return true;
+  }
+
   private startPhase(phase: GamePhase): void {
     this.currentPhase = phase;
     this.phaseTimer = 0;

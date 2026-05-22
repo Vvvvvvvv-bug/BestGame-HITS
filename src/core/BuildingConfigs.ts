@@ -1,4 +1,4 @@
-export type ResourceCost = {
+﻿export type ResourceCost = {
     iron: number;
     stone: number;
 };
@@ -6,14 +6,14 @@ export type ResourceCost = {
 export const BUILDING_CONFIGS = {
     drill: { name: 'БУР', cost: { iron: 100, stone: 100 }, healthPoints: 300 },
     wall: { name: 'СТЕНА', cost: { iron: 0, stone: 20 }, healthPoints: 500 },
-    bomb: { name: 'БОМБА', cost: { iron: 30, stone: 0 }, healthPoints: 1 }
+    bomb: { name: 'БОМБА', cost: { iron: 100, stone: 0 }, healthPoints: 1 }
 } as const;
 
 export const EXPLOSIVE_CONFIG = {
     name: 'БОМБА',
     cost: BUILDING_CONFIGS.bomb.cost,
     damage: 80,
-    radius: 150,
+    radius: 75,
     cooldown: 1000
 } as const;
 
@@ -25,7 +25,7 @@ export const TURRET_CONFIGS = [
     { level: 5, name: 'Mk V', unlockCost: 16000, damage: 28, fireRate: 8, range: 270 }
 ] as const;
 
-export const TURRET_BUILD_BASE_COST = 200;
+export const TURRET_BUILD_BASE_COST = 500;
 
 export function scaleCost(cost: ResourceCost, multiplier: number): ResourceCost {
     return {
@@ -40,3 +40,4 @@ export function formatCost(cost: ResourceCost): string {
     if (cost.stone > 0) parts.push(`${cost.stone} St`);
     return parts.length > 0 ? parts.join(' ') : '0';
 }
+

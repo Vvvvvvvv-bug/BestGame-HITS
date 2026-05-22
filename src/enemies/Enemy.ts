@@ -1,4 +1,5 @@
-import type { Attackable } from '../core/Attackable';
+﻿import type { Attackable } from '../core/Attackable';
+import { playSfx } from '../audio/Sfx';
 
 export abstract class Enemy implements Attackable {
   sprite: Phaser.GameObjects.Sprite;
@@ -8,14 +9,16 @@ export abstract class Enemy implements Attackable {
   maxHealthPoints: number;
   damage: number;
   speed: number;
-  
+
   protected targetX: number | null = null;
   protected targetY: number | null = null;
   protected scene: Phaser.Scene;
   protected attackTarget: Attackable | null = null;
   protected attackTimer: number = 0;
-  protected attackCooldown: number = 1000; // атака раз в 1 сек
-  protected baseScale: number;             // масштаб после setDisplaySize — для относительных анимаций
+  protected attackCooldown: number = 1000;
+  protected baseScale: number;
+  protected animTime: number = 0;
+  protected moveBlend: number = 0;
 
   constructor(
     scene: Phaser.Scene,
@@ -37,7 +40,7 @@ export abstract class Enemy implements Attackable {
     this.sprite = scene.add.sprite(x, y, frameKey);
     this.sprite.setOrigin(0.5, 0.5);
     this.sprite.setDepth(20);
-    this.sprite.setDisplaySize(40, 40); // SVG 88px -> 40px (чуть крупнее клетки 32px)
+    this.sprite.setDisplaySize(44, 44);
     this.baseScale = this.sprite.scaleX;
   }
 
@@ -70,6 +73,7 @@ export abstract class Enemy implements Attackable {
     if (distance < 5) {
       this.sprite.x = this.targetX;
       this.sprite.y = this.targetY;
+      this.moveBlend = Math.max(0, this.moveBlend - delta * 0.01);
       return;
     }
 
@@ -81,6 +85,11 @@ export abstract class Enemy implements Attackable {
     this.sprite.y += moveY;
     this.gridX = this.sprite.x;
     this.gridY = this.sprite.y;
+    this.moveBlend = Math.min(1, this.moveBlend + delta * 0.008);
+
+    if (Math.abs(moveX) > 0.01) {
+      this.sprite.setFlipX(moveX > 0);
+    }
   }
 
   protected canAttack(): boolean {
@@ -92,13 +101,14 @@ export abstract class Enemy implements Attackable {
       this.attackTarget.takeDamage(this.damage);
       this.attackTimer = 0;
 
-      // Визуальный эффект атаки
       this.sprite.scene.tweens.add({
         targets: this.sprite,
-        scaleX: this.baseScale * 1.15,
-        scaleY: this.baseScale * 1.15,
-        duration: 80,
-        yoyo: true
+        scaleX: this.baseScale * 1.24,
+        scaleY: this.baseScale * 0.88,
+        angle: this.sprite.flipX ? -10 : 10,
+        duration: 85,
+        yoyo: true,
+        ease: 'Quad.easeOut'
       });
     }
   }
@@ -107,10 +117,28 @@ export abstract class Enemy implements Attackable {
     this.attackTimer += delta;
   }
 
+  protected updateMovementAnimation(delta: number): void {
+    this.animTime += delta * 0.013;
+
+    const stride = Math.sin(this.animTime);
+    const bounce = Math.cos(this.animTime * 2);
+    const runAmount = this.moveBlend;
+    const idleAmount = 1 - runAmount;
+
+    this.sprite.scaleX = this.baseScale * (1 + stride * 0.08 * runAmount + 0.015 * idleAmount);
+    this.sprite.scaleY = this.baseScale * (1 - stride * 0.05 * runAmount + 0.015 * idleAmount);
+    this.sprite.angle = stride * 7 * runAmount + bounce * 1.5 * idleAmount;
+  }
+
   abstract update(delta: number): void;
 
   takeDamage(amount: number): boolean {
     this.healthPoints -= amount;
+    if (this.healthPoints > 0) {
+      playSfx(this.scene, 'enemy-hit');
+    } else {
+      playSfx(this.scene, 'enemy-death');
+    }
     return this.healthPoints <= 0;
   }
 
@@ -118,3 +146,4 @@ export abstract class Enemy implements Attackable {
     this.sprite.destroy();
   }
 }
+
