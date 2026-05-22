@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { GameState } from './core/GameState';
 import { ResourcePanel } from './ui/ResourcePanel';
 import { BuildingSelector } from './ui/BuildingSelector';
-import { createBuilding } from './buildings/BuildingFactory';
+import { createBuilding, createTurret, createBomb } from './buildings/BuildingFactory';
 import { WaveManager } from './core/WaveManager';
 import { WavePanel } from './ui/WavePanel';
 import { Enemy } from './enemies/Enemy';
@@ -11,8 +11,7 @@ import { eventBus } from './core/EventBus';
 import { Player } from './player/Player';
 import { BombSelector } from './ui/BombSelector';
 import { TurretSelector } from './ui/TurretSelector';
-import { Bomb } from './buildings/Bomb';
-import { Turret } from './buildings/Turret';
+
 import { Drill } from './buildings/Drill';
 import { BUILDING_CONFIGS } from './core/BuildingConfigs';
 import { UI_COLORS, UI_DEPTH } from './ui/uiTheme';
@@ -352,7 +351,7 @@ export default class MainScene extends Phaser.Scene {
 
     const worldX = this.getWorldXFromGrid(gridX);
     const worldY = gridY * this.CELL_SIZE + this.CELL_SIZE / 2;
-    this.buildingManager.addTurret(this.getGridKey(gridX, gridY), new Turret(this, worldX, worldY, level));
+    this.buildingManager.addTurret(this.getGridKey(gridX, gridY), createTurret(this, worldX, worldY, level));
     this.ghost.setFillStyle(this.GHOST_COLOR_BLOCKED, 0.4);
   }
 
@@ -367,7 +366,8 @@ export default class MainScene extends Phaser.Scene {
     const worldX = this.getWorldXFromGrid(gridX);
     const worldY = gridY * this.CELL_SIZE + this.CELL_SIZE / 2;
 
-    const bomb = new Bomb(this, worldX, worldY, (activatedBomb) => {
+    const bombKey = this.getGridKey(gridX, gridY);
+    const bomb = createBomb(this, worldX, worldY, (activatedBomb) => {
       const affected = activatedBomb.getEnemiesInRadius(this.enemies);
       for (const enemy of affected) {
         if (enemy.takeDamage(50)) { 
@@ -375,9 +375,9 @@ export default class MainScene extends Phaser.Scene {
           enemy.destroy();
         }
       }
-      this.buildingManager.removeBomb(activatedBomb);
+      this.buildingManager.removeBomb(bombKey);
     });
-    this.buildingManager.addBomb(this.getGridKey(gridX, gridY), bomb);
+    this.buildingManager.addBomb(bombKey, bomb);
   }
 
   private isOccupied(gridX: number, gridY: number): boolean {

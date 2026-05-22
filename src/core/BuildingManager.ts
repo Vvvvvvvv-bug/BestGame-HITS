@@ -80,12 +80,11 @@ export class BuildingManager {
     }
   }
 
-  removeBomb(bomb: Bomb): void {
-    for (const [key, b] of this.bombs.entries()) {
-      if (b === bomb) {
-        this.bombs.delete(key);
-        break;
-      }
+  removeBomb(key: string): void {
+    const bomb = this.bombs.get(key);
+    if (bomb) {
+      bomb.destroy();
+      this.bombs.delete(key);
     }
   }
 

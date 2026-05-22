@@ -52,6 +52,7 @@ export class Bomb implements Attackable {
     const graphics = this.scene.add.graphics();
     graphics.fillStyle(0xFF6B00, 0.6);
     graphics.fillCircle(this.x, this.y, EXPLOSIVE_CONFIG.radius);
+    graphics.setDepth(25);
     
     this.scene.tweens.add({
       targets: graphics,

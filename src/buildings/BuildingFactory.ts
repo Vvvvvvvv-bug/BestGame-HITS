@@ -1,6 +1,8 @@
 import type { Building } from './Building';
 import { Drill } from './Drill';
 import { Wall } from './Wall';
+import { Turret } from './Turret';
+import { Bomb } from './Bomb';
 
 const REGISTRY: Record<string, new (scene: Phaser.Scene, x: number, y: number, resourceType?: string) => Building> = {
   drill: Drill,
@@ -17,4 +19,22 @@ export function createBuilding(
   const Ctor = REGISTRY[type];
   if (!Ctor) throw new Error(`Unknown building type: ${type}`);
   return new Ctor(scene, x, y, resourceType);
+}
+
+export function createTurret(
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  level: number
+): Turret {
+  return new Turret(scene, x, y, level);
+}
+
+export function createBomb(
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  onDetonate: (bomb: Bomb) => void
+): Bomb {
+  return new Bomb(scene, x, y, onDetonate);
 }
