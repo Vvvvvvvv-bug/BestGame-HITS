@@ -18,6 +18,7 @@ import { UI_COLORS, UI_DEPTH } from './ui/uiTheme';
 import { BuildingManager } from './core/BuildingManager';
 import { CombatManager } from './core/CombatManager';
 import { playSfx } from './audio/Sfx';
+import { Airdrop } from './airdrops/Airdrop';
 export default class MainScene extends Phaser.Scene {
   private readonly CELL_SIZE = 32;
   private readonly LEFT_PANEL_WIDTH = 224;
@@ -31,6 +32,7 @@ export default class MainScene extends Phaser.Scene {
   private buildingManager!: BuildingManager;
   private combatManager!: CombatManager;
   private enemySpawner!: EnemySpawner;
+  private airdrops: Set<Airdrop> = new Set();
   private player!: Player;
   private playerHealthFill!: Phaser.GameObjects.Rectangle;
   private playerHealthText!: Phaser.GameObjects.Text;
@@ -70,6 +72,9 @@ export default class MainScene extends Phaser.Scene {
   private baseIncomeTimer = 0;
   private readonly BASE_INCOME_INTERVAL = 1800;
   private readonly BASE_INCOME_AMOUNT = 10;
+  private airdropSpawnTimer = 0;
+  private nextAirdropSpawnDelay = 0;
+  private readonly AIRDROP_LURE_RADIUS_BLOCKS = 15;
 
   private readonly TILESET_KEY = 'tileset';
   private readonly TILESET_NAME = 'tileset';
@@ -85,6 +90,7 @@ export default class MainScene extends Phaser.Scene {
     this.load.svg('drill', 'src/assets/drill.svg', { width: 96, height: 96 });
     this.load.svg('wall', 'src/assets/wall.svg', { width: 96, height: 96 });
     this.load.svg('bomb', 'src/assets/bomb.svg', { width: 96, height: 96 });
+    this.load.svg('airdrop', 'src/assets/airdrop.svg', { width: 96, height: 96 });
     this.load.svg('enemy', 'src/assets/enemy.svg', { width: 88, height: 88 });
     this.load.image('ant_idle_1', 'ants_assets/ants_sprite_sheet/4/idle/ant_idle_1.png');
     this.load.image('ant_idle_2', 'ants_assets/ants_sprite_sheet/4/idle/ant_idle_2.png');
@@ -131,6 +137,7 @@ export default class MainScene extends Phaser.Scene {
     this.wavePanel = new WavePanel(this);
     this.waveManager = new WaveManager();
     this.enemySpawner = new EnemySpawner(this, this.enemies, this.getPlayfieldBounds());
+    this.scheduleNextAirdrop();
     
     this.buildingSelector = new BuildingSelector(this, this.gameState, (type, isBomb) => {
       this.turretSelector?.clearSelection();
@@ -175,6 +182,8 @@ export default class MainScene extends Phaser.Scene {
       this.input.off('pointerdown', this.handlePointerDown, this);
       this.events.off(Phaser.Scenes.Events.ADDED_TO_SCENE, this.onObjectAdded);
       this.scale.off('resize', this.onResize);
+      for (const airdrop of this.airdrops) airdrop.destroy();
+      this.airdrops.clear();
     });
 
     // Должно идти последним: все HUD-объекты уже созданы.
@@ -605,7 +614,18 @@ export default class MainScene extends Phaser.Scene {
 
   private isOccupied(gridX: number, gridY: number): boolean {
     const key = this.getGridKey(gridX, gridY);
-    return this.buildingManager.isOccupied(key) || this.isPlayerCell(gridX, gridY);
+    return this.buildingManager.isOccupied(key) || this.isPlayerCell(gridX, gridY) || this.isAirdropCell(gridX, gridY);
+  }
+
+  private isAirdropCell(gridX: number, gridY: number): boolean {
+    for (const airdrop of this.airdrops) {
+      const airdropGridX = this.getGridXFromWorld(airdrop.sprite.x);
+      const airdropGridY = Math.floor(airdrop.sprite.y / this.CELL_SIZE);
+      if (airdropGridX === gridX && airdropGridY === gridY) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private isPlayerCell(gridX: number, gridY: number): boolean {
@@ -671,6 +691,7 @@ export default class MainScene extends Phaser.Scene {
     }
 
     this.buildingManager.update(delta, this.enemies);
+    this.updateAirdrops(delta);
 
     this.player.update(delta);
 
@@ -680,7 +701,8 @@ export default class MainScene extends Phaser.Scene {
       delta,
       this.enemies,
       this.buildingManager.getAttackables(),
-      this.player
+      this.player,
+      this.getOpeningAirdrops()
     );
     for (const enemy of deadEnemies) {
       this.enemies.delete(enemy);
@@ -712,6 +734,105 @@ export default class MainScene extends Phaser.Scene {
     this.baseIncomeTimer = 0;
     eventBus.emit('resource-mined', { type: 'iron', amount: this.BASE_INCOME_AMOUNT });
     eventBus.emit('resource-mined', { type: 'stone', amount: this.BASE_INCOME_AMOUNT });
+  }
+
+  private updateAirdrops(delta: number): void {
+    for (const airdrop of this.airdrops) {
+      airdrop.update(delta);
+    }
+
+    if (this.currentPhase !== 'wave' || this.airdrops.size > 0) {
+      return;
+    }
+
+    this.airdropSpawnTimer += delta;
+    if (this.airdropSpawnTimer < this.nextAirdropSpawnDelay) return;
+
+    this.spawnAirdrop();
+    this.scheduleNextAirdrop();
+  }
+
+  private scheduleNextAirdrop(): void {
+    this.airdropSpawnTimer = 0;
+    this.nextAirdropSpawnDelay = Phaser.Math.Between(35000, 60000);
+  }
+
+  private spawnAirdrop(): void {
+    const position = this.findFreeAirdropCell();
+    if (!position) return;
+
+    const worldX = this.getWorldXFromGrid(position.gridX);
+    const worldY = position.gridY * this.CELL_SIZE + this.CELL_SIZE / 2;
+    const airdrop = new Airdrop(
+      this,
+      worldX,
+      worldY,
+      this.AIRDROP_LURE_RADIUS_BLOCKS * this.CELL_SIZE,
+      (finishedAirdrop, completed) => this.finishAirdrop(finishedAirdrop, completed)
+    );
+
+    this.airdrops.add(airdrop);
+    this.showFloatingText(worldX, worldY - 36, 'Аирдроп!');
+  }
+
+  private findFreeAirdropCell(): { gridX: number; gridY: number } | null {
+    const playerLeft = this.getPlayerLeftCell();
+    const playerTop = this.getPlayerTopCell();
+
+    for (let attempt = 0; attempt < 80; attempt++) {
+      const gridX = Phaser.Math.Between(2, this.cols - 3);
+      const gridY = Phaser.Math.Between(2, this.rows - 3);
+      const distanceToPlayer = Phaser.Math.Distance.Between(gridX, gridY, playerLeft + 1, playerTop + 1);
+
+      if (distanceToPlayer < 8) continue;
+      if (this.isOccupied(gridX, gridY)) continue;
+
+      return { gridX, gridY };
+    }
+
+    return null;
+  }
+
+  private finishAirdrop(airdrop: Airdrop, completed: boolean): void {
+    this.clearAirdropTargets(airdrop);
+    this.airdrops.delete(airdrop);
+
+    const x = airdrop.sprite.x;
+    const y = airdrop.sprite.y;
+    airdrop.destroy();
+
+    this.showFloatingText(x, y - 36, completed ? '+1 очко улучшения' : 'Аирдроп уничтожен');
+  }
+
+  private clearAirdropTargets(airdrop: Airdrop): void {
+    for (const enemy of this.enemies) {
+      if (enemy.getAttackTarget() === airdrop) {
+        enemy.clearTarget();
+      }
+    }
+  }
+
+  private getOpeningAirdrops(): Airdrop[] {
+    return Array.from(this.airdrops).filter((airdrop) => airdrop.isOpening && airdrop.isAlive);
+  }
+
+  private showFloatingText(x: number, y: number, text: string): void {
+    const textObj = this.add.text(x, y, text, {
+      fontFamily: '"Inter", "Segoe UI", Arial, sans-serif',
+      fontSize: '15px',
+      color: '#ffcf73',
+      fontStyle: 'bold',
+      resolution: 2,
+    }).setOrigin(0.5).setDepth(40);
+
+    this.tweens.add({
+      targets: textObj,
+      y: y - 22,
+      alpha: 0,
+      duration: 1200,
+      ease: 'Quad.easeOut',
+      onComplete: () => textObj.destroy(),
+    });
   }
 
   private emitEnemiesRemainingUpdate(): void {

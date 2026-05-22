@@ -53,6 +53,16 @@ export abstract class Enemy implements Attackable {
     this.attackTarget = target;
   }
 
+  getAttackTarget(): Attackable | null {
+    return this.attackTarget;
+  }
+
+  clearTarget(): void {
+    this.targetX = null;
+    this.targetY = null;
+    this.attackTarget = null;
+  }
+
   needsTarget(): boolean {
     if (this.targetX === null || this.targetY === null) return true;
     if (!this.attackTarget) return true;
@@ -146,4 +156,3 @@ export abstract class Enemy implements Attackable {
     this.sprite.destroy();
   }
 }
-
