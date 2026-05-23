@@ -7,6 +7,7 @@ import {
   TURRET_CONFIGS,
 } from './BuildingConfigs';
 import type { ResourceCost } from './BuildingConfigs';
+import { getGameMode } from './GameMode';
 
 export class GameState {
   public resources = {
@@ -28,6 +29,7 @@ export class GameState {
   }
 
   public getDrillCost(): ResourceCost {
+    if (getGameMode() === 'armageddon') return BUILDING_CONFIGS.drill.cost;
     return scaleCost(BUILDING_CONFIGS.drill.cost, Math.pow(2, this.drillsBuilt));
   }
 
@@ -40,10 +42,12 @@ export class GameState {
   }
 
   public getTurretBuildCost(): number {
+    if (getGameMode() === 'armageddon') return TURRET_BUILD_BASE_COST;
     return Math.ceil(TURRET_BUILD_BASE_COST * Math.pow(2, this.turretsBuilt));
   }
 
   public getFreezeTurretBuildCost(): number {
+    if (getGameMode() === 'armageddon') return TURRET_BUILD_BASE_COST;
     return Math.ceil(this.getTurretBuildCost() * FREEZE_TURRET_COST_MULTIPLIER);
   }
 

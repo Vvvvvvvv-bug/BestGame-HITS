@@ -20,6 +20,7 @@ import { BuildingManager } from './core/BuildingManager';
 import { CombatManager } from './core/CombatManager';
 import { playSfx } from './audio/Sfx';
 import { musicManager } from './audio/MusicManager';
+import { getGameMode } from './core/GameMode';
 import { Airdrop } from './airdrops/Airdrop';
 import { Zealot } from './enemies/Zealot';
 import { QuizModal } from './ui/QuizModal';
@@ -84,6 +85,7 @@ export default class MainScene extends Phaser.Scene {
   private selectingBomb: boolean = false;
   private pendingBombCell: { gridX: number; gridY: number } | null = null; // бомба ставится со 2-го клика
   private bombConfirmMarker?: Phaser.GameObjects.Rectangle;
+  private lastDragBuildCell: { gridX: number; gridY: number } | null = null;
   private waveManager!: WaveManager;
   private currentPhase: string = 'gathering';
   private baseIncomeTimer = 0;
@@ -191,6 +193,20 @@ export default class MainScene extends Phaser.Scene {
     this.waveManager = new WaveManager();
     this.enemySpawner = new EnemySpawner(this, this.enemies, this.getPlayfieldBounds());
     this.scheduleNextAirdrop();
+
+    // Armageddon mode setup
+    if (getGameMode() === 'armageddon') {
+      this.gameState.resources.iron = 999999;
+      this.gameState.resources.stone = 999999;
+      this.gameState.resources.gradePoint = 999;
+      this.gameState.unlockedTurretLevel = 3;
+      this.gameState.freezeTurretUnlocked = true;
+      ['dmg_1', 'dmg_2', 'dmg_3', 'rng_1', 'rng_2', 'fr_1', 'fr_2', 'hp_1', 'hp_2'].forEach((id) =>
+        this.gameState.turretUpgrades.add(id)
+      );
+      this.waveManager.enableArmageddon();
+      this.enemySpawner.enableArmageddon();
+    }
     
     this.buildingSelector = new BuildingSelector(this, this.gameState, (type, isBomb) => {
       this.turretSelector?.clearSelection();
@@ -609,21 +625,23 @@ export default class MainScene extends Phaser.Scene {
   private handlePointerMove(pointer: Phaser.Input.Pointer): void {
     this.hasPointerMoved = true;
 
-    if (this.activeQuiz || this.activePauseModal) {            // окно открыто — мир не реагирует
+    if (this.activeQuiz || this.activePauseModal) {
       this.ghost.setVisible(false);
       return;
     }
 
-    // Перетаскивание карты средней кнопкой мыши (drag-pan, как в RTS).
+    // Перетаскивание карты средней кнопкой мыши
     if (pointer.middleButtonDown()) {
       this.cameras.main.scrollX -= pointer.x - pointer.prevPosition.x;
       this.cameras.main.scrollY -= pointer.y - pointer.prevPosition.y;
       this.ghost.setVisible(false);
+      this.lastDragBuildCell = null;
       return;
     }
 
     if (this.isPointerOverPanel(pointer)) {
       this.ghost.setVisible(false);
+      this.lastDragBuildCell = null;
       return;
     }
 
@@ -631,12 +649,27 @@ export default class MainScene extends Phaser.Scene {
 
     if (gridX < 0 || gridX >= this.cols || gridY < 0 || gridY >= this.rows) {
       this.ghost.setVisible(false);
+      this.lastDragBuildCell = null;
       return;
     }
 
     this.ghost.setVisible(true);
     this.ghost.setPosition(this.getGridOriginX() + gridX * this.CELL_SIZE + 1, gridY * this.CELL_SIZE + 1);
     this.ghost.setFillStyle(this.isOccupied(gridX, gridY) ? this.GHOST_COLOR_BLOCKED : this.GHOST_COLOR_FREE, 0.4);
+
+    // drag-to-build
+    if (pointer.leftButtonDown() && !this.selectingBomb) {
+      if (!this.lastDragBuildCell || this.lastDragBuildCell.gridX !== gridX || this.lastDragBuildCell.gridY !== gridY) {
+        this.lastDragBuildCell = { gridX, gridY };
+        if (!this.isOccupied(gridX, gridY)) {
+          this.turretSelector?.clearSelection();
+          this.clearBombPending();
+          this.placeBuilding(gridX, gridY);
+        }
+      }
+    } else {
+      this.lastDragBuildCell = null;
+    }
   }
 
   private handlePointerDown(pointer: Phaser.Input.Pointer): void {
@@ -917,8 +950,9 @@ export default class MainScene extends Phaser.Scene {
     if (this.currentPhase === 'gameover' || this.currentPhase === 'victory') return;
 
     const isWave = this.currentPhase === 'wave';
-    const interval = isWave ? this.WAVE_INCOME_INTERVAL : this.BASE_INCOME_INTERVAL;
-    const amount = isWave ? this.WAVE_INCOME_AMOUNT : this.BASE_INCOME_AMOUNT;
+    const isArmageddon = getGameMode() === 'armageddon';
+    const interval = isArmageddon ? 100 : isWave ? this.WAVE_INCOME_INTERVAL : this.BASE_INCOME_INTERVAL;
+    const amount = isArmageddon ? 5000 : isWave ? this.WAVE_INCOME_AMOUNT : this.BASE_INCOME_AMOUNT;
 
     this.baseIncomeTimer += delta;
     if (this.baseIncomeTimer < interval) return;

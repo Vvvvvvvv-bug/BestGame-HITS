@@ -2,6 +2,8 @@
 import { playSfx } from '../audio/Sfx';
 import { musicManager } from '../audio/MusicManager';
 import { SettingsPanel } from '../ui/SettingsPanel';
+import { ModeSelectorModal } from '../ui/ModeSelectorModal';
+import { setGameMode } from '../core/GameMode';
 
 export default class MenuScene extends Phaser.Scene {
   private centerX = 0;
@@ -128,7 +130,7 @@ export default class MenuScene extends Phaser.Scene {
     const titleSize = Math.min(72, Math.floor(panelW * 0.13));
 
     this.title = this.add
-      .text(this.centerX, this.centerY - 160, 'BEST GAME: HITS', {
+      .text(this.centerX, this.centerY - 160, 'HITS VS BUGS', {
         fontSize: `${titleSize}px`,
         color: '#d9fbff',
         fontStyle: 'bold',
@@ -151,7 +153,10 @@ export default class MenuScene extends Phaser.Scene {
 
   private createButtons(): void {
     this.createButton(this.centerX, this.centerY - 10, 340, 72, 'НАЧАТЬ ИГРУ', () => {
-      this.scene.start('MainScene');
+      new ModeSelectorModal(this, (mode) => {
+        setGameMode(mode);
+        this.scene.start('MainScene');
+      });
     });
 
     this.createButton(this.centerX, this.centerY + 70, 340, 72, 'НАСТРОЙКИ', () => {

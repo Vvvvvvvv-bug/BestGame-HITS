@@ -10,18 +10,24 @@ export class WaveManager {
   private currentPhase: GamePhase = 'gathering';
   private phaseTimer: number = 0;
   
-  private gatheringDuration: number = 30000; // 30 СЃРµРє РґР»СЏ СЃР±РѕСЂР° СЂРµСЃСѓСЂСЃРѕРІ
-  private buildingDuration: number = 30000;  // 30 СЃРµРє РґР»СЏ СЃС‚СЂРѕРёС‚РµР»СЊСЃС‚РІР°
-  private waveDuration: number = 60000;      // 60 СЃРµРє РґР»СЏ РІРѕР»РЅС‹
+  private gatheringDuration: number = 30000;
+  private buildingDuration: number = 30000;
+  private waveDuration: number = 60000;
   
   private enemiesCount: number = 10;
   private maxWaves: number = MAX_WAVES;
   
   private baseWaveDuration: number = 60000;
-  private waveMultiplier: number = 1.1; // РќР° РєР°Р¶РґСѓСЋ РІРѕР»РЅСѓ РІСЂРµРјСЏ +10%
+  private waveMultiplier: number = 1.1;
+  private armageddon = false;
 
   constructor() {
     this.startPhase('gathering');
+  }
+
+  public enableArmageddon(): void {
+    this.armageddon = true;
+    this.startPhase('wave');
   }
 
   public update(delta: number): void {
@@ -87,7 +93,6 @@ export class WaveManager {
   }
 
   private calculateWaveParams(): void {
-    // РЈРІРµР»РёС‡РёРІР°РµРј РїР°СЂР°РјРµС‚СЂС‹ РІРѕР»РЅС‹
     const base = 10 + (this.currentWave - 1) * 3;
     const difficulty = settings.get().difficulty;
     let bonus = 0;
@@ -97,6 +102,12 @@ export class WaveManager {
       bonus = this.currentWave * 10;
     }
     this.enemiesCount = base + bonus;
+
+    if (this.armageddon) {
+      this.enemiesCount = 50 + this.currentWave * 20;
+      this.waveDuration = 120000;
+      return;
+    }
 
     const difficultyDurationMultiplier = difficulty === 'hard' ? 1.3 : difficulty === 'normal' ? 1.15 : 1.0;
     this.waveDuration = Math.floor(
@@ -113,8 +124,9 @@ export class WaveManager {
         this.startPhase('wave');
         break;
       case 'wave':
-        // РџРѕСЃР»Рµ РІРѕР»РЅС‹ РїСЂРѕРІРµСЂСЏРµРј, РЅРµ РїРѕСЃР»РµРґРЅСЏСЏ Р»Рё СЌС‚Рѕ Р±С‹Р»Р° РІРѕР»РЅР°
-        if (this.currentWave >= this.maxWaves) {
+        if (this.armageddon) {
+          this.startPhase('wave');
+        } else if (this.currentWave >= this.maxWaves) {
           this.startPhase('victory');
         } else {
           this.startPhase('gathering');
