@@ -25,6 +25,7 @@ import { Airdrop } from './airdrops/Airdrop';
 import { Zealot } from './enemies/Zealot';
 import { QuizModal } from './ui/QuizModal';
 import { PauseModal } from './ui/PauseModal';
+import { TutorialModal } from './ui/TutorialModal';
 import { DifficultyIndicator } from './ui/DifficultyIndicator';
 import { pickRandomQuestion } from './quiz/questions';
 export default class MainScene extends Phaser.Scene {
@@ -43,6 +44,8 @@ export default class MainScene extends Phaser.Scene {
   private airdrops: Set<Airdrop> = new Set();
   private activeQuiz?: QuizModal;
   private activePauseModal?: PauseModal;
+  private activeTutorial?: TutorialModal;
+  private tutorialActive = false;
   private isPaused = false;
   private lastPauseTime = 0;
   private readonly PAUSE_COOLDOWN = 350;
@@ -190,6 +193,7 @@ export default class MainScene extends Phaser.Scene {
 
     this.calculateGridDimensions();
     this.setupTilemap();
+    this.setupTilesetFrames();
     this.setupGridLines();
     this.setupSidebar();
     this.setupGhost();
@@ -223,6 +227,7 @@ export default class MainScene extends Phaser.Scene {
       );
       this.waveManager.enableArmageddon();
       this.enemySpawner.enableArmageddon();
+      musicManager.play(getArmageddonMusic());
     }
     
     this.buildingSelector = new BuildingSelector(this, this.gameState, (type, isBomb) => {
@@ -281,6 +286,10 @@ export default class MainScene extends Phaser.Scene {
       this.activeQuiz = undefined;
       this.activePauseModal?.destroy();
       this.activePauseModal = undefined;
+      this.activeTutorial?.destroy();
+      this.activeTutorial = undefined;
+      this.wavePanel?.destroy();
+      this.gameState?.destroy();
       musicManager.stop();
     });
 
@@ -293,8 +302,15 @@ export default class MainScene extends Phaser.Scene {
       }
     });
 
-    
+
     this.setupCameraLayers();
+
+    this.tutorialActive = true;
+    this.activeTutorial = new TutorialModal(this, () => {
+      this.tutorialActive = false;
+      this.activeTutorial = undefined;
+    });
+    this.assignToHud(this.activeTutorial.getObjects());
   }
 
   private createSkipPhaseButton(): void {
@@ -570,6 +586,14 @@ export default class MainScene extends Phaser.Scene {
     const layer = this.map.createLayer(0, this.tileset, this.getGridOriginX(), 0);
     if (!layer) throw new Error('Layer failed to create');
     this.groundLayer = layer;
+  }
+
+  private setupTilesetFrames(): void {
+    const tex = this.textures.get(this.TILESET_KEY);
+    if (!tex.has('stone')) {
+      tex.add('stone', 0, this.CELL_SIZE * 1, 0, this.CELL_SIZE, this.CELL_SIZE); // tile index 1 = stone
+      tex.add('iron',  0, this.CELL_SIZE * 2, 0, this.CELL_SIZE, this.CELL_SIZE); // tile index 2 = iron/ore
+    }
   }
 
   private setupGridLines(): void {
@@ -903,7 +927,7 @@ export default class MainScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
-    if (this.isPaused || this.victoryShown || this.gameOverShown) return;
+    if (this.isPaused || this.tutorialActive || this.victoryShown || this.gameOverShown) return;
 
     this.updateCamera(delta);
 

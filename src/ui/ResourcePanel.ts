@@ -14,7 +14,7 @@ export class ResourcePanel {
     const startY = 18;
     const gap = 24;
 
-    const ironIcon = scene.add.sprite(centerX - 78, startY, 'tile_iron')
+    const ironIcon = scene.add.sprite(centerX - 78, startY, 'tileset', 'iron')
       .setDisplaySize(20, 20)
       .setDepth(UI_DEPTH + 1);
 
@@ -25,7 +25,7 @@ export class ResourcePanel {
     }).setDepth(UI_DEPTH + 1);
 
     const stoneY = startY + gap;
-    const stoneIcon = scene.add.sprite(centerX - 78, stoneY, 'tile_stone')
+    const stoneIcon = scene.add.sprite(centerX - 78, stoneY, 'tileset', 'stone')
       .setDisplaySize(20, 20)
       .setDepth(UI_DEPTH + 1);
 

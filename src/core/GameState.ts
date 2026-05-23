@@ -22,10 +22,17 @@ export class GameState {
   public freezeTurretUnlocked = false;
   public turretUpgrades = new Set<string>();
 
+  private readonly resourceHandler: (payload: { type: 'iron' | 'stone' | 'gradePoint'; amount: number }) => void;
+
   constructor() {
-    eventBus.on('resource-mined', (payload) => {
+    this.resourceHandler = (payload) => {
       this.resources[payload.type] += payload.amount;
-    });
+    };
+    eventBus.on('resource-mined', this.resourceHandler);
+  }
+
+  public destroy(): void {
+    eventBus.off('resource-mined', this.resourceHandler);
   }
 
   public getDrillCost(): ResourceCost {

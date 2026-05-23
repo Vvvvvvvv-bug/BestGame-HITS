@@ -1,6 +1,14 @@
 import { eventBus } from '../core/EventBus';
 import { createHudPanel, TEXT_STYLE, UI_COLORS, UI_DEPTH } from './uiTheme';
 
+type WaveData = {
+  phase: string;
+  waveNumber: number;
+  timeLeft: number;
+  waveDuration: number;
+  enemiesInWave: number;
+};
+
 const PHASE_NAMES: Record<string, string> = {
   'gathering': 'Сбор ресурсов',
   'building': 'Строительство',
@@ -25,6 +33,8 @@ export class WavePanel {
   private timerText: Phaser.GameObjects.Text;
   private enemiesText: Phaser.GameObjects.Text;
   private progressBar: Phaser.GameObjects.Rectangle;
+  private readonly waveHandler: (data: WaveData) => void;
+  private readonly enemiesHandler: (data: { enemiesRemaining: number }) => void;
 
   constructor(scene: Phaser.Scene) {
     const panelX = 112;
@@ -73,24 +83,16 @@ export class WavePanel {
     this.progressBar.setOrigin(0, 0);
     this.progressBar.setDepth(UI_DEPTH + 2);
 
-    eventBus.on('wave-update', (data) => {
-      this.update(data);
-    });
+    this.waveHandler = (data) => this.update(data);
+    this.enemiesHandler = (data) => this.enemiesText.setText(`Осталось: ${data.enemiesRemaining}`);
 
-    eventBus.on('enemies-remaining-update', (data) => {
-      this.enemiesText.setText(`Осталось: ${data.enemiesRemaining}`);
-    });
+    eventBus.on('wave-update', this.waveHandler);
+    eventBus.on('enemies-remaining-update', this.enemiesHandler);
   }
 
-  private update(data: {
-    phase: string;
-    waveNumber: number;
-    timeLeft: number;
-    waveDuration: number;
-    enemiesInWave: number;
-  }): void {
+  private update(data: WaveData): void {
     const phase = data.phase as keyof typeof PHASE_NAMES;
-    
+
     this.phaseText.setText(PHASE_NAMES[phase]);
     this.phaseText.setColor(PHASE_COLORS[phase]);
 
@@ -98,12 +100,17 @@ export class WavePanel {
     if (data.phase !== 'wave') {
       this.enemiesText.setText(`Врагов: ${data.enemiesInWave}`);
     }
-    
+
     const seconds = Math.ceil(data.timeLeft / 1000);
     this.timerText.setText(`Время: ${seconds}с`);
   }
 
   public updateProgress(progress: number): void {
     this.progressBar.setScale(Phaser.Math.Clamp(progress, 0, 1), 1);
+  }
+
+  public destroy(): void {
+    eventBus.off('wave-update', this.waveHandler);
+    eventBus.off('enemies-remaining-update', this.enemiesHandler);
   }
 }
