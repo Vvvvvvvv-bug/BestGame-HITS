@@ -20,7 +20,7 @@ import { BuildingManager } from './core/BuildingManager';
 import { CombatManager } from './core/CombatManager';
 import { playSfx } from './audio/Sfx';
 import { musicManager } from './audio/MusicManager';
-import { getGameMode } from './core/GameMode';
+import { getGameMode, getArmageddonMusic } from './core/GameMode';
 import { Airdrop } from './airdrops/Airdrop';
 import { Zealot } from './enemies/Zealot';
 import { QuizModal } from './ui/QuizModal';
@@ -157,7 +157,8 @@ export default class MainScene extends Phaser.Scene {
     this.load.svg('turret-3', 'src/assets/turret-3.svg', { width: 96, height: 96 });
 
     // музыкальные треки
-    this.load.audio('music-main', 'music/main.mp3');
+    const mainTrack = getGameMode() === 'armageddon' ? getArmageddonMusic() : 'main';
+    this.load.audio('music-main', `music/${mainTrack}.mp3`);
     this.load.audio('music-victory', 'music/victory.mp3');
     this.load.audio('music-defeat', 'music/defeat.mp3');
     this.load.svg('turret-freeze', 'src/assets/turret-freeze.svg', { width: 96, height: 96 });

@@ -3,7 +3,8 @@ import { playSfx } from '../audio/Sfx';
 import { musicManager } from '../audio/MusicManager';
 import { SettingsPanel } from '../ui/SettingsPanel';
 import { ModeSelectorModal } from '../ui/ModeSelectorModal';
-import { setGameMode } from '../core/GameMode';
+import { MusicChoiceModal } from '../ui/MusicChoiceModal';
+import { setGameMode, setArmageddonMusic } from '../core/GameMode';
 
 export default class MenuScene extends Phaser.Scene {
   private centerX = 0;
@@ -155,7 +156,14 @@ export default class MenuScene extends Phaser.Scene {
     this.createButton(this.centerX, this.centerY - 10, 340, 72, 'НАЧАТЬ ИГРУ', () => {
       new ModeSelectorModal(this, (mode) => {
         setGameMode(mode);
-        this.scene.start('MainScene');
+        if (mode === 'armageddon') {
+          new MusicChoiceModal(this, (track) => {
+            setArmageddonMusic(track);
+            this.scene.start('MainScene');
+          });
+        } else {
+          this.scene.start('MainScene');
+        }
       });
     });
 
