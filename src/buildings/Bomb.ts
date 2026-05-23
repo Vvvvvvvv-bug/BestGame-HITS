@@ -23,7 +23,7 @@ export class Bomb implements Attackable {
     this.sprite = scene.add.sprite(x, y, 'bomb');
     this.sprite.setOrigin(0.5, 0.5);
     this.sprite.setDepth(15);
-    this.sprite.setDisplaySize(30, 30); // SVG 96px -> 30px (под клетку)
+    this.sprite.setDisplaySize(30, 30); 
     this.baseScale = this.sprite.scaleX;
     this.sprite.setInteractive({ useHandCursor: true });
 
@@ -39,10 +39,10 @@ export class Bomb implements Attackable {
     this.lastDetonatedTime = 0;
     playSfx(this.scene, 'explosion');
 
-    // Сообщаем сцене о взрыве, чтобы она нанесла урон врагам
+    
     this.onDetonate(this);
 
-    // Визуальный эффект
+    
     this.scene.tweens.add({
       targets: this.sprite,
       scale: this.baseScale * 1.5,
@@ -53,7 +53,7 @@ export class Bomb implements Attackable {
       }
     });
 
-    // Рисуем взрыв
+    
     const graphics = this.scene.add.graphics();
     graphics.fillStyle(0xFF6B00, 0.6);
     graphics.fillCircle(this.x, this.y, EXPLOSIVE_CONFIG.radius);
@@ -92,7 +92,7 @@ export class Bomb implements Attackable {
         this.canDetonate = true;
         this.sprite.setAlpha(1);
       } else {
-        // Показываем кд через альфу
+        
         this.sprite.setAlpha(0.5 + 0.5 * (this.lastDetonatedTime / EXPLOSIVE_CONFIG.cooldown));
       }
     }

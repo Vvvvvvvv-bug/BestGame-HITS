@@ -12,7 +12,7 @@ export class Turret implements Attackable {
   private readonly scene: Phaser.Scene;
   private readonly gameState: GameState;
 
-  // Крио-луч (постоянный, без урона)
+  
   private beamCore?: Phaser.GameObjects.Line;
   private beamGlow?: Phaser.GameObjects.Line;
   private buzz?: CryoBeamSound;
@@ -42,7 +42,7 @@ export class Turret implements Attackable {
     this.cooldown -= delta;
     const target = this.findTarget(enemies);
 
-    // Крио — постоянный луч: НЕ наносит урон, только замедляет (60%) и делает уязвимым (+20%).
+    
     if (this.type === 'freeze') {
       this.updateCryoBeam(delta, target);
       return;
@@ -67,7 +67,7 @@ export class Turret implements Attackable {
     playSfx(this.scene, 'turret-shot');
   }
 
-  /** Держит непрерывный крио-луч на цели: копит заморозку каждый кадр + гудит «бззз». */
+  
   private updateCryoBeam(delta: number, target: Enemy | null): void {
     if (!target) {
       this.clearBeam();
@@ -78,7 +78,7 @@ export class Turret implements Attackable {
     const angle = Phaser.Math.Angle.Between(this.sprite.x, this.sprite.y, target.sprite.x, target.sprite.y);
     this.sprite.setRotation(angle);
 
-    target.applyFreezeCharge(delta); // постоянная подпитка => держит замедление/уязвимость, пока луч на цели
+    target.applyFreezeCharge(delta); 
     this.buzz?.setActive(true);
     this.drawBeam(target.sprite.x, target.sprite.y, delta);
   }
@@ -128,7 +128,7 @@ export class Turret implements Attackable {
       const distance = Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, enemy.sprite.x, enemy.sprite.y);
       if (distance > range) continue;
 
-      // Приоритет: сначала замороженные цели (они уязвимы +20%), внутри группы — ближайшая.
+      
       const frozen = enemy.freezeStrength > 0.02 ? 1 : 0;
       const score = frozen * 1e6 - distance;
       if (score > bestScore) {

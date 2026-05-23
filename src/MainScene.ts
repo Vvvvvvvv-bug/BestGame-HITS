@@ -46,7 +46,7 @@ export default class MainScene extends Phaser.Scene {
   private isPaused = false;
   private lastPauseTime = 0;
   private readonly PAUSE_COOLDOWN = 350;
-  private readonly AIRDROP_QUIZ_REWARD = 1; // очков исследования за верный ответ
+  private readonly AIRDROP_QUIZ_REWARD = 1; 
   private player!: Player;
   private playerHealthFill!: Phaser.GameObjects.Rectangle;
   private playerHealthText!: Phaser.GameObjects.Text;
@@ -61,15 +61,15 @@ export default class MainScene extends Phaser.Scene {
   private cols = 0;
   private rows = 0;
 
-  // --- RTS-камера ---
-  private uiCamera!: Phaser.Cameras.Scene2D.Camera; // отдельная камера для HUD: не скроллится
+  
+  private uiCamera!: Phaser.Cameras.Scene2D.Camera; 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: Record<string, Phaser.Input.Keyboard.Key>;
-  private readonly CAMERA_SCROLL_SPEED = 0.85; // пикселей на мс
-  private readonly EDGE_SCROLL_MARGIN = 28;     // зона у края экрана для edge-scroll
-  private hasPointerMoved = false;              // защита от auto-scroll до первого движения мыши
+  private readonly CAMERA_SCROLL_SPEED = 0.85; 
+  private readonly EDGE_SCROLL_MARGIN = 28;     
+  private hasPointerMoved = false;              
 
-  // UI компоненты
+  
   private resourcePanel!: ResourcePanel;
   private wavePanel!: WavePanel;
   private difficultyIndicator!: DifficultyIndicator;
@@ -83,7 +83,7 @@ export default class MainScene extends Phaser.Scene {
   public gameState: GameState = new GameState();
   private selectedType: string = 'drill';
   private selectingBomb: boolean = false;
-  private pendingBombCell: { gridX: number; gridY: number } | null = null; // бомба ставится со 2-го клика
+  private pendingBombCell: { gridX: number; gridY: number } | null = null; 
   private bombConfirmMarker?: Phaser.GameObjects.Rectangle;
   private lastDragBuildCell: { gridX: number; gridY: number } | null = null;
   private waveManager!: WaveManager;
@@ -100,7 +100,7 @@ export default class MainScene extends Phaser.Scene {
   private readonly TILESET_KEY = 'tileset';
   private readonly TILESET_NAME = 'tileset';
 
-  // Список твоих 5 пулеметов для внутренней логики апгрейдов, если понадобится
+  
   constructor() {
     super({ key: 'MainScene' });
   }
@@ -156,14 +156,18 @@ export default class MainScene extends Phaser.Scene {
     this.load.svg('turret-2', 'src/assets/turret-2.svg', { width: 96, height: 96 });
     this.load.svg('turret-3', 'src/assets/turret-3.svg', { width: 96, height: 96 });
 
-    // музыкальные треки
-    const mainTrack = getGameMode() === 'armageddon' ? getArmageddonMusic() : 'main';
-    this.load.audio('music-main', `music/${mainTrack}.mp3`);
+    
+    if (getGameMode() === 'armageddon') {
+      const track = getArmageddonMusic();
+      this.load.audio(`music-armageddon-${track}`, `music/${track}.mp3`);
+    } else {
+      this.load.audio('music-main', 'music/main.mp3');
+    }
     this.load.audio('music-victory', 'music/victory.mp3');
     this.load.audio('music-defeat', 'music/defeat.mp3');
     this.load.svg('turret-freeze', 'src/assets/turret-freeze.svg', { width: 96, height: 96 });
-    // 6 тайлов по CELL_SIZE (земля/камень/руда + 3 ландшафтных): растеризуем SVG ровно
-    // в размер сетки, чтобы нарезка 32×32 попадала в целые тайлы, а не в их углы.
+    
+    
     this.load.svg(this.TILESET_KEY, 'src/assets/tileset.svg', { width: this.CELL_SIZE * 6, height: this.CELL_SIZE });
 
     this.load.svg('tile_empty', 'src/assets/tile-empty.svg', { width: 64, height: 64 });
@@ -172,6 +176,18 @@ export default class MainScene extends Phaser.Scene {
   }
 
   create() {
+    this.gameState = new GameState();
+    this.enemies.clear();
+    this.airdrops.clear();
+    this.gameOverShown = false;
+    this.victoryShown = false;
+    this.isPaused = false;
+    this.lastPauseTime = 0;
+    this.selectedType = 'drill';
+    this.selectingBomb = false;
+    this.pendingBombCell = null;
+    this.lastDragBuildCell = null;
+
     this.calculateGridDimensions();
     this.setupTilemap();
     this.setupGridLines();
@@ -195,7 +211,7 @@ export default class MainScene extends Phaser.Scene {
     this.enemySpawner = new EnemySpawner(this, this.enemies, this.getPlayfieldBounds());
     this.scheduleNextAirdrop();
 
-    // Armageddon mode setup
+    
     if (getGameMode() === 'armageddon') {
       this.gameState.resources.iron = 999999;
       this.gameState.resources.stone = 999999;
@@ -237,13 +253,14 @@ export default class MainScene extends Phaser.Scene {
       const previousPhase = this.currentPhase;
       this.currentPhase = data.phase;
 
+      const mainTrack = getGameMode() === 'armageddon' ? getArmageddonMusic() : 'main';
       if (data.phase === 'wave' && previousPhase !== 'wave') {
-        musicManager.play('main');
+        musicManager.play(mainTrack);
         this.enemySpawner.startWave(data.enemiesInWave, data.waveDuration, data.waveNumber);
         this.emitEnemiesRemainingUpdate();
         playSfx(this, 'phase-wave');
       } else if ((data.phase === 'gathering' || data.phase === 'building') && previousPhase !== data.phase) {
-        musicManager.play('main');
+        musicManager.play(mainTrack);
       } else if (data.phase !== 'wave' && previousPhase === 'wave') {
         this.enemySpawner.stopWave();
       }
@@ -267,7 +284,7 @@ export default class MainScene extends Phaser.Scene {
       musicManager.stop();
     });
 
-    // ESC — пауза / выход в меню; Enter — подтвердить выход (как «Да»)
+    
     this.input.keyboard?.on('keydown', (event: KeyboardEvent) => {
       if (event.key === 'Escape' || event.keyCode === 27) {
         this.togglePause();
@@ -276,7 +293,7 @@ export default class MainScene extends Phaser.Scene {
       }
     });
 
-    // Должно идти последним: все HUD-объекты уже созданы.
+    
     this.setupCameraLayers();
   }
 
@@ -363,7 +380,7 @@ export default class MainScene extends Phaser.Scene {
       playSfx(this, 'ui-click');
     });
 
-    // Debug-кнопка: мгновенная победа
+    
     const winButtonBg = this.add.rectangle(buttonX, buttonY - 40, 188, 32, 0x1a2a24, 0.96)
       .setStrokeStyle(1, 0x79e6b2, 0.95)
       .setDepth(UI_DEPTH + 1)
@@ -385,18 +402,18 @@ export default class MainScene extends Phaser.Scene {
     });
   }
 
-  // === RTS-камера =========================================================
+  
 
   private setupCamera(): void {
     const cam = this.cameras.main;
-    // Мир = левая панель + сетка + правая панель по ширине; высота = сетка.
+    
     const worldWidth = this.LEFT_PANEL_WIDTH + this.cols * this.CELL_SIZE + this.RIGHT_PANEL_WIDTH;
     const worldHeight = this.rows * this.CELL_SIZE;
-    cam.setBounds(0, 0, worldWidth, worldHeight); // клампит скролл по краям карты
+    cam.setBounds(0, 0, worldWidth, worldHeight); 
     cam.centerOn(this.getPlayerCenterX(), this.getPlayerCenterY());
 
-    // Вторая камера для HUD: НЕ скроллится. Ввод по ней мапится 1:1 в экран,
-    // поэтому клики/ховеры меню больше не «уезжают» вместе с миром.
+    
+    
     this.uiCamera = this.cameras.add(0, 0, this.scale.width, this.scale.height);
     this.scale.on('resize', this.onResize);
 
@@ -404,11 +421,7 @@ export default class MainScene extends Phaser.Scene {
     this.wasd = this.input.keyboard!.addKeys('W,A,S,D') as Record<string, Phaser.Input.Keyboard.Key>;
   }
 
-  /**
-   * Раскидывает объекты по камерам: мир рисует только main, HUD — только uiCamera.
-   * Порог по depth (UI >= UI_DEPTH-2). Динамика (враги/здания/снаряды) создаётся после
-   * create() — она вся «мир», прячем её с uiCamera через событие ADDED_TO_SCENE.
-   */
+  
   private setupCameraLayers(): void {
     const uiThreshold = UI_DEPTH - 2;
     const uiList: Phaser.GameObjects.GameObject[] = [];
@@ -426,16 +439,12 @@ export default class MainScene extends Phaser.Scene {
     this.uiCamera?.ignore(go);
   };
 
-  /**
-   * Переносит объект(ы) на HUD-камеру: рисуются только на uiCamera (фикс к экрану,
-   * ввод 1:1), скрыты с мировой камеры. Для рантайм-оверлеев (викторина, древо апгрейдов),
-   * которые onObjectAdded по умолчанию отправляет на скроллящуюся мировую камеру.
-   */
+  
   public assignToHud(target: Phaser.GameObjects.GameObject | Phaser.GameObjects.GameObject[]): void {
     const list = Array.isArray(target) ? target : [target];
     for (const obj of list) {
-      (obj as unknown as { cameraFilter: number }).cameraFilter &= ~this.uiCamera.id; // показать на uiCamera
-      this.cameras.main.ignore(obj);                                                  // скрыть с мира
+      (obj as unknown as { cameraFilter: number }).cameraFilter &= ~this.uiCamera.id; 
+      this.cameras.main.ignore(obj);                                                  
       if (obj instanceof Phaser.GameObjects.Container) {
         this.assignToHud(obj.list);
       }
@@ -452,13 +461,13 @@ export default class MainScene extends Phaser.Scene {
     let dx = 0;
     let dy = 0;
 
-    // Клавиатура: стрелки + WASD
+    
     if (this.cursors.left.isDown || this.wasd.A.isDown) dx -= speed;
     if (this.cursors.right.isDown || this.wasd.D.isDown) dx += speed;
     if (this.cursors.up.isDown || this.wasd.W.isDown) dy -= speed;
     if (this.cursors.down.isDown || this.wasd.S.isDown) dy += speed;
 
-    // Edge-scroll: мышь у края экрана (только после первого движения мыши)
+    
     if (this.hasPointerMoved) {
       const p = this.input.activePointer;
       const m = this.EDGE_SCROLL_MARGIN;
@@ -474,15 +483,12 @@ export default class MainScene extends Phaser.Scene {
     }
   }
 
-  /** True, если курсор над боковой панелью (там нельзя строить/целиться сквозь HUD). */
+  
   private isPointerOverPanel(pointer: Phaser.Input.Pointer): boolean {
     return pointer.x < this.LEFT_PANEL_WIDTH || pointer.x > this.scale.width - this.RIGHT_PANEL_WIDTH;
   }
 
-  /**
-   * Экранные координаты курсора -> клетка сетки. Считаем через main-камеру явно
-   * (pointer.worldX ненадёжен при двух камерах — его может выставить uiCamera).
-   */
+  
   private pointerToGrid(pointer: Phaser.Input.Pointer): { gridX: number; gridY: number } {
     const world = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
     return {
@@ -495,7 +501,7 @@ export default class MainScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const visibleCols = Math.floor((width - this.LEFT_PANEL_WIDTH - this.RIGHT_PANEL_WIDTH) / this.CELL_SIZE);
     const visibleRows = Math.floor(height / this.CELL_SIZE);
-    // Карта заметно больше видимой области — простор для RTS-скролла на любом мониторе.
+    
     this.cols = Math.max(visibleCols + 32, Math.round(visibleCols * 2));
     this.rows = Math.max(visibleRows + 22, Math.round(visibleRows * 2));
   }
@@ -513,8 +519,8 @@ export default class MainScene extends Phaser.Scene {
     this.add.rectangle(this.LEFT_PANEL_WIDTH, this.scale.height / 2, 2, this.scale.height, UI_COLORS.borderMuted, 1)
       .setDepth(UI_DEPTH - 1);
 
-    // Правая панель — по краю ЭКРАНА (раньше считалась от ширины сетки, и после увеличения
-    // карты уезжала за экран). UI живёт на фиксированной uiCamera, поэтому экранные = её координаты.
+    
+    
     const x = this.scale.width - this.RIGHT_PANEL_WIDTH;
     this.add.rectangle(
       x + this.RIGHT_PANEL_WIDTH / 2,
@@ -543,10 +549,10 @@ export default class MainScene extends Phaser.Scene {
         }
 
         const r = Math.random();
-        if (r < 0.025) rowData.push(2);                            // руда (было 5% → вдвое меньше)
-        else if (r < 0.075) rowData.push(1);                       // камень (было 10% → вдвое меньше)
-        else if (r < 0.225) rowData.push(3 + Math.floor(Math.random() * 3)); // ландшафт: трещины/галька/мох
-        else rowData.push(0);                                      // чистая земля
+        if (r < 0.025) rowData.push(2);                            
+        else if (r < 0.075) rowData.push(1);                       
+        else if (r < 0.225) rowData.push(3 + Math.floor(Math.random() * 3)); 
+        else rowData.push(0);                                      
       }
       data.push(rowData);
     }
@@ -631,7 +637,7 @@ export default class MainScene extends Phaser.Scene {
       return;
     }
 
-    // Перетаскивание карты средней кнопкой мыши
+    
     if (pointer.middleButtonDown()) {
       this.cameras.main.scrollX -= pointer.x - pointer.prevPosition.x;
       this.cameras.main.scrollY -= pointer.y - pointer.prevPosition.y;
@@ -658,7 +664,7 @@ export default class MainScene extends Phaser.Scene {
     this.ghost.setPosition(this.getGridOriginX() + gridX * this.CELL_SIZE + 1, gridY * this.CELL_SIZE + 1);
     this.ghost.setFillStyle(this.isOccupied(gridX, gridY) ? this.GHOST_COLOR_BLOCKED : this.GHOST_COLOR_FREE, 0.4);
 
-    // drag-to-build
+    
     if (pointer.leftButtonDown() && !this.selectingBomb) {
       if (!this.lastDragBuildCell || this.lastDragBuildCell.gridX !== gridX || this.lastDragBuildCell.gridY !== gridY) {
         this.lastDragBuildCell = { gridX, gridY };
@@ -674,9 +680,9 @@ export default class MainScene extends Phaser.Scene {
   }
 
   private handlePointerDown(pointer: Phaser.Input.Pointer): void {
-    if (this.activeQuiz || this.activePauseModal) return;             // окно перехватывает ввод
-    if (pointer.button !== 0) return;        // только ЛКМ (средняя — для drag-pan)
-    if (this.isPointerOverPanel(pointer)) return; // клики по HUD не строят сквозь панель
+    if (this.activeQuiz || this.activePauseModal) return;             
+    if (pointer.button !== 0) return;        
+    if (this.isPointerOverPanel(pointer)) return; 
 
     const { gridX, gridY } = this.pointerToGrid(pointer);
 
@@ -699,7 +705,7 @@ export default class MainScene extends Phaser.Scene {
     }
   }
 
-  /** Бомба ставится в два клика: 1-й намечает ячейку, 2-й по той же — подтверждает. */
+  
   private handleBombClick(gridX: number, gridY: number): void {
     if (this.pendingBombCell && this.pendingBombCell.gridX === gridX && this.pendingBombCell.gridY === gridY) {
       this.clearBombPending();
@@ -1026,19 +1032,19 @@ export default class MainScene extends Phaser.Scene {
     airdrop.destroy();
   }
 
-  /** Клик по дропу: запускаем таймер-викторину. Дроп блокируется до ответа. */
+  
   private openAirdropQuiz(airdrop: Airdrop): void {
-    if (this.activeQuiz) return; // одно окно за раз
+    if (this.activeQuiz) return; 
     this.clearAirdropTargets(airdrop);
 
     const question = pickRandomQuestion();
     const modal = new QuizModal(this, question, (correct) => this.resolveAirdropQuiz(airdrop, correct));
-    this.assignToHud(modal.getObjects()); // окно рисует только uiCamera (фикс к экрану)
+    this.assignToHud(modal.getObjects()); 
 
     this.activeQuiz = modal;
   }
 
-  /** Итог викторины: верно → очки исследования, неверно → муравей на месте дропа. */
+  
   private resolveAirdropQuiz(airdrop: Airdrop, correct: boolean): void {
     this.activeQuiz?.destroy();
     this.activeQuiz = undefined;
@@ -1152,18 +1158,18 @@ export default class MainScene extends Phaser.Scene {
     const cx = this.scale.width / 2;
     const cy = this.scale.height / 2;
 
-    // backdrop
+    
     this.add.rectangle(cx, cy, this.scale.width, this.scale.height, 0x05080f, 0.72)
       .setDepth(1000)
       .setScrollFactor(0);
 
-    // panel
+    
     this.add.rectangle(cx, cy, 480, 280, 0x0f1a2c, 0.98)
       .setStrokeStyle(2, 0x79e6b2)
       .setDepth(1001)
       .setScrollFactor(0);
 
-    // title
+    
     const title = this.add.text(cx, cy - 60, 'ПОБЕДА!', {
       fontSize: '48px',
       color: '#79e6b2',

@@ -19,7 +19,7 @@ export default class MenuScene extends Phaser.Scene {
   private settingsPanel?: SettingsPanel;
 
 
-  // Фоновое «поле боя» (без звука)
+  
   private ants: { sprite: Phaser.GameObjects.Sprite; frames: string[]; size: number; speed: number; frameTimer: number; frame: number; dying: boolean }[] = [];
   private turrets: { sprite: Phaser.GameObjects.Sprite; fireTimer: number; freeze: boolean }[] = [];
   private wallX = 0;
@@ -32,7 +32,7 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   preload(): void {
-    // MenuScene идёт раньше MainScene, поэтому грузим нужные ассеты сами.
+    
     this.load.audio('music-main', 'music/main.mp3');
 
     this.load.image('mb_ant_1', 'ants_assets/ants_sprite_sheet/4/walk/ant_walk_1.png');
@@ -262,7 +262,7 @@ export default class MenuScene extends Phaser.Scene {
     });
   }
 
-  // === Фон: эпичное поле боя (без звука) =================================
+  
 
   private createBattlefield(): void {
     const w = this.scale.width;
@@ -284,23 +284,23 @@ export default class MenuScene extends Phaser.Scene {
     const addWall = (x: number, y: number) =>
       this.add.image(x, y, 'mb_wall').setDisplaySize(30, 32).setDepth(3).setAlpha(0.95);
 
-    // --- Укрепления: 3 линии стен + рамка форта (плотно) ---
+    
     const step = 30;
-    for (let y = top; y <= bottom; y += step) addWall(frontWallX, y);              // фронт (сплошной)
+    for (let y = top; y <= bottom; y += step) addWall(frontWallX, y);              
     for (let y = top; y <= bottom; y += step) {
-      if (Math.abs(y - this.centerY) < 48) continue;                               // проём в средней
+      if (Math.abs(y - this.centerY) < 48) continue;                               
       addWall(midWallX, y);
     }
     for (let y = top; y <= bottom; y += step) {
-      if (Math.abs(y - this.centerY) < 70) continue;                               // широкий проём у задней
+      if (Math.abs(y - this.centerY) < 70) continue;                               
       addWall(backWallX, y);
     }
-    for (let x = frontWallX; x <= w - 6; x += step) {                              // верх/низ форта
+    for (let x = frontWallX; x <= w - 6; x += step) {                              
       addWall(x, top);
       addWall(x, bottom);
     }
 
-    // --- Турели: 3 эшелона за стенами (целая батарея) ---
+    
     const turretTex = ['mb_turret_1', 'mb_turret_2', 'mb_turret_3', 'mb_turret_f'];
     let ti = 0;
     const addTurretColumn = (x: number, count: number) => {
@@ -315,14 +315,14 @@ export default class MenuScene extends Phaser.Scene {
     addTurretColumn(midWallX + 32, 8);
     addTurretColumn(backWallX + 28, 6);
 
-    // --- Буры внутри базы ---
+    
     for (let i = 0; i < 9; i++) {
       const dx = Phaser.Math.Between(backWallX + 22, hqX - 26);
       const dy = Phaser.Math.Between(top + 36, bottom - 36);
       this.add.image(dx, dy, 'mb_drill').setDisplaySize(26, 26).setDepth(3).setAlpha(0.92);
     }
 
-    // --- ШТАБ (база) ---
+    
     const hq = this.add.image(hqX, this.centerY, 'mb_base').setDisplaySize(96, 96).setDepth(4);
     this.tweens.add({
       targets: hq,
@@ -334,17 +334,17 @@ export default class MenuScene extends Phaser.Scene {
       ease: 'Sine.easeInOut',
     });
 
-    // --- Орда муравьёв: больше видов, тьма штук ---
+    
     const ant = ['mb_ant_1', 'mb_ant_2', 'mb_ant_3'];
     const brute = ['mb_brute_1', 'mb_brute_2', 'mb_brute_3'];
     const boss = ['mb_boss_1', 'mb_boss_2', 'mb_boss_3'];
     const antTypes = [
-      { frames: ant, size: 32, speedMin: 22, speedMax: 36, count: 30, tint: 0xffffff }, // рядовые
-      { frames: ant, size: 34, speedMin: 18, speedMax: 30, count: 18, tint: 0xff9a8a }, // красные
-      { frames: ant, size: 30, speedMin: 24, speedMax: 40, count: 14, tint: 0x9ad7ff }, // синие (быстрые)
-      { frames: brute, size: 52, speedMin: 12, speedMax: 20, count: 12, tint: 0xffffff }, // бруты
-      { frames: brute, size: 56, speedMin: 10, speedMax: 16, count: 7, tint: 0xc9a6ff }, // фиол. бруты
-      { frames: boss, size: 76, speedMin: 8, speedMax: 13, count: 4, tint: 0xffd28a }, // боссы
+      { frames: ant, size: 32, speedMin: 22, speedMax: 36, count: 30, tint: 0xffffff }, 
+      { frames: ant, size: 34, speedMin: 18, speedMax: 30, count: 18, tint: 0xff9a8a }, 
+      { frames: ant, size: 30, speedMin: 24, speedMax: 40, count: 14, tint: 0x9ad7ff }, 
+      { frames: brute, size: 52, speedMin: 12, speedMax: 20, count: 12, tint: 0xffffff }, 
+      { frames: brute, size: 56, speedMin: 10, speedMax: 16, count: 7, tint: 0xc9a6ff }, 
+      { frames: boss, size: 76, speedMin: 8, speedMax: 13, count: 4, tint: 0xffd28a }, 
     ];
     for (const type of antTypes) {
       for (let i = 0; i < type.count; i++) {
@@ -366,7 +366,7 @@ export default class MenuScene extends Phaser.Scene {
 
     this.battleReady = true;
 
-    // --- Боссы по углам ---
+    
     const bossSize = 900;
     const bossY = Math.max(h - 260, h * 0.68);
     const bossXOffset = 180;
@@ -405,7 +405,7 @@ export default class MenuScene extends Phaser.Scene {
 
     const color = t.freeze ? 0x8fe3ff : 0xfff0bf;
 
-    // трассер
+    
     const tracer = this.add
       .line(0, 0, t.sprite.x, t.sprite.y, target.sprite.x, target.sprite.y, color, 0.85)
       .setOrigin(0, 0)
@@ -413,18 +413,18 @@ export default class MenuScene extends Phaser.Scene {
       .setDepth(4);
     this.tweens.add({ targets: tracer, alpha: 0, duration: 170, onComplete: () => tracer.destroy() });
 
-    // вспышка попадания
+    
     const flash = this.add.circle(target.sprite.x, target.sprite.y, 6, color, 0.85).setDepth(4);
     this.tweens.add({ targets: flash, alpha: 0, scale: 2.2, duration: 240, onComplete: () => flash.destroy() });
 
-    // обычные турели иногда «уничтожают» мелкого муравья → он возрождается слева (бесконечная орда).
-    // Брутов/боссов не убиваем мгновенно — только подсвечиваем попадание.
+    
+    
     if (!t.freeze && target.size <= 40 && Math.random() < 0.5) {
       this.killAnt(target);
     }
   }
 
-  /** «Смерть» муравья: схлопывается и возрождается слева. */
+  
   private killAnt(ant: MenuScene['ants'][number]): void {
     if (ant.dying) return;
     ant.dying = true;
@@ -440,7 +440,7 @@ export default class MenuScene extends Phaser.Scene {
     });
   }
 
-  /** Бомба падает сверху на орду и взрывается. */
+  
   private dropBomb(): void {
     const w = this.scale.width;
     const h = this.scale.height;
@@ -470,7 +470,7 @@ export default class MenuScene extends Phaser.Scene {
     const ring = this.add.circle(x, y, radius * 0.3, 0xff8a3c, 0).setStrokeStyle(3, 0xffb052, 0.9).setDepth(5);
     this.tweens.add({ targets: ring, scale: 2.4, alpha: 0, duration: 420, ease: 'Cubic.easeOut', onComplete: () => ring.destroy() });
 
-    // выкосить муравьёв в радиусе (боссы переживают)
+    
     for (const a of this.ants) {
       if (a.dying || a.size >= 70) continue;
       if (Phaser.Math.Distance.Between(x, y, a.sprite.x, a.sprite.y) <= radius) {
@@ -481,7 +481,7 @@ export default class MenuScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     if (!this.battleReady) return;
-    const step = Math.min(delta, 50); // защита от скачков dt
+    const step = Math.min(delta, 50); 
 
     for (const ant of this.ants) {
       if (ant.dying) continue;

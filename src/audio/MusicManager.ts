@@ -1,12 +1,15 @@
 import Phaser from 'phaser';
 import { settings } from '../core/Settings';
 
-type MusicTrack = 'main' | 'victory' | 'defeat';
+export type MusicTrack = 'main' | 'victory' | 'defeat' | 'грустная' | 'крутая' | 'веселая';
 
-const TRACK_KEYS: Record<MusicTrack, string> = {
+const TRACK_KEYS: Record<string, string> = {
   main: 'music-main',
   victory: 'music-victory',
   defeat: 'music-defeat',
+  грустная: 'music-armageddon-грустная',
+  крутая: 'music-armageddon-крутая',
+  веселая: 'music-armageddon-веселая',
 };
 
 class MusicManager {
@@ -23,7 +26,7 @@ class MusicManager {
     });
   }
 
-  public play(track: MusicTrack, fadeMs = 800): void {
+  public play(track: MusicTrack | string, fadeMs = 800): void {
     if (!this.gameSound) return;
     const key = TRACK_KEYS[track];
     if (this.currentKey === key) return;
@@ -43,14 +46,14 @@ class MusicManager {
       this.current.play();
     }
 
-    // fade in new
+    
     if (this.current && fadeMs > 0) {
       const targetVol = settings.get().musicVolume;
       this.current.setVolume(0);
       this.fadeSound(this.current, targetVol, fadeMs);
     }
 
-    // fade out old
+    
     if (old && oldKey !== key) {
       if (fadeMs > 0) {
         this.fadeSound(old, 0, fadeMs, () => {

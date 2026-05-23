@@ -48,7 +48,7 @@ export class Airdrop implements Attackable {
     });
   }
 
-  // 'busy' (открыта викторина) считается «не живым» => враги не приманиваются и не бьют дроп.
+  
   public get isOpening(): boolean {
     return this.state === 'busy';
   }
@@ -57,7 +57,7 @@ export class Airdrop implements Attackable {
     return this.healthPoints > 0 && this.state === 'idle';
   }
 
-  /** Клик по дропу: блокируем и просим сцену открыть окно с вопросом. */
+  
   private open(): void {
     if (this.state !== 'idle') return;
     this.state = 'busy';
@@ -75,7 +75,7 @@ export class Airdrop implements Attackable {
   }
 
   public update(_delta: number): void {
-    // Таймер живёт в окне викторины; здесь обновлять нечего.
+    
   }
 
   public takeDamage(amount: number): boolean {

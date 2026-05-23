@@ -3,7 +3,7 @@
 export interface WeaponStats {
   name: string;
   damage: number;
-  attackSpeed: number; // атак в секунду
+  attackSpeed: number; 
   range: number;
   cost: number;
 }

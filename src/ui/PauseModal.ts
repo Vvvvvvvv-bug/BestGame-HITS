@@ -18,7 +18,7 @@ export class PauseModal {
     const cx = scene.scale.width / 2;
     const cy = scene.scale.height / 2;
 
-    // backdrop
+    
     const backdrop = scene.add
       .rectangle(cx, cy, scene.scale.width, scene.scale.height, 0x05080f, 0.55)
       .setDepth(MODAL_DEPTH)
@@ -26,7 +26,7 @@ export class PauseModal {
     backdrop.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, e: Phaser.Types.Input.EventData) => e.stopPropagation());
     this.track(backdrop);
 
-    // panel
+    
     this.track(
       scene.add
         .rectangle(cx, cy, PANEL_W, PANEL_H, 0x0f1a2c, 0.98)
@@ -34,7 +34,7 @@ export class PauseModal {
         .setDepth(MODAL_DEPTH + 1)
     );
 
-    // title
+    
     this.track(
       scene.add
         .text(cx, cy - PANEL_H / 2 + 38, 'ПАУЗА', {
@@ -47,7 +47,7 @@ export class PauseModal {
         .setDepth(MODAL_DEPTH + 2)
     );
 
-    // question
+    
     this.track(
       scene.add
         .text(cx, cy - 10, 'Хотите выйти в меню?', {
@@ -59,10 +59,10 @@ export class PauseModal {
         .setDepth(MODAL_DEPTH + 2)
     );
 
-    // Yes button
+    
     this.buildButton(cx - 78, cy + 48, 'ДА', 0xff6b7d, () => this.onYes());
 
-    // No button
+    
     this.buildButton(cx + 78, cy + 48, 'НЕТ', 0x79e6b2, () => this.onNo());
   }
 

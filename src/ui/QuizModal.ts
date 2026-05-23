@@ -2,7 +2,7 @@ import { TEXT_STYLE, UI_COLORS, UI_DEPTH } from './uiTheme';
 import type { QuizQuestion } from '../quiz/questions';
 
 const MODAL_DEPTH = UI_DEPTH + 20;
-const QUIZ_DURATION = 15000; // мс на ответ
+const QUIZ_DURATION = 15000; 
 const PANEL_W = 560;
 const PANEL_H = 440;
 const BTN_W = 480;
@@ -10,12 +10,7 @@ const BTN_H = 50;
 const TIMER_W = 480;
 const LETTERS = ['A', 'B', 'C', 'D'];
 
-/**
- * Модальное окно викторины по программированию. Создаётся при клике на аирдроп.
- * Запускает таймер; при ответе (или таймауте) вызывает onResolve(correct).
- * Объекты создаются плоско (без контейнеров) — getObjects() отдаёт их MainScene,
- * чтобы назначить камеру (рисуем только на uiCamera, фикс к экрану).
- */
+
 export class QuizModal {
   private readonly scene: Phaser.Scene;
   private readonly onResolve: (correct: boolean) => void;
@@ -35,21 +30,21 @@ export class QuizModal {
     const cx = scene.scale.width / 2;
     const cy = scene.scale.height / 2;
 
-    // затемнение фона (перехватывает клики, чтобы не строить «сквозь» окно)
+    
     const backdrop = scene.add.rectangle(cx, cy, scene.scale.width, scene.scale.height, 0x05080f, 0.72)
       .setDepth(MODAL_DEPTH)
       .setInteractive();
     backdrop.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, e: Phaser.Types.Input.EventData) => e.stopPropagation());
     this.track(backdrop);
 
-    // панель
+    
     this.track(
       scene.add.rectangle(cx, cy, PANEL_W, PANEL_H, 0x0f1a2c, 0.98)
         .setStrokeStyle(2, UI_COLORS.border)
         .setDepth(MODAL_DEPTH + 1)
     );
 
-    // тема (чип)
+    
     this.track(
       scene.add.text(cx, cy - PANEL_H / 2 + 28, question.topic, {
         ...TEXT_STYLE,
@@ -61,7 +56,7 @@ export class QuizModal {
       }).setOrigin(0.5).setDepth(MODAL_DEPTH + 2)
     );
 
-    // текст вопроса
+    
     this.track(
       scene.add.text(cx, cy - PANEL_H / 2 + 78, question.question, {
         ...TEXT_STYLE,
@@ -73,7 +68,7 @@ export class QuizModal {
       }).setOrigin(0.5, 0).setDepth(MODAL_DEPTH + 2)
     );
 
-    // таймер
+    
     const timerY = cy - 36;
     this.track(
       scene.add.rectangle(cx, timerY, TIMER_W, 8, 0x1b2a3f, 1)
@@ -85,7 +80,7 @@ export class QuizModal {
       .setDepth(MODAL_DEPTH + 3);
     this.track(this.timerFill);
 
-    // кнопки ответов
+    
     const firstY = cy + 14;
     question.options.forEach((option, i) => {
       const by = firstY + i * (BTN_H + 10);
@@ -118,13 +113,13 @@ export class QuizModal {
       this.track(text);
     });
 
-    // запуск таймера ответа
+    
     this.timerTween = scene.tweens.add({
       targets: this.timerFill,
       width: 0,
       duration: QUIZ_DURATION,
       ease: 'Linear',
-      onComplete: () => this.answer(-1), // время вышло = неверно
+      onComplete: () => this.answer(-1), 
     });
   }
 
@@ -136,7 +131,7 @@ export class QuizModal {
 
     const correct = index === this.question.correct;
 
-    // подсветка: правильный — зелёным, ошибочный выбор — красным
+    
     for (const { bg, index: bi } of this.buttons) {
       bg.disableInteractive();
       if (bi === this.question.correct) {
@@ -146,11 +141,11 @@ export class QuizModal {
       }
     }
 
-    // короткая пауза, чтобы игрок увидел результат
+    
     this.resolveEvent = this.scene.time.delayedCall(750, () => this.onResolve(correct));
   }
 
-  /** Все display-объекты окна — для назначения камеры в MainScene. */
+  
   public getObjects(): Phaser.GameObjects.GameObject[] {
     return this.objects;
   }

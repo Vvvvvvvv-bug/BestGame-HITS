@@ -10,7 +10,7 @@ export class Zealot extends Enemy {
   private lastAttackAt = -2000;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    // HP: 100 (x2), Damage: 20, Speed: 70 px/sec
+    
     super(scene, x, y, 'ant_idle_1', 100, 20, 70);
   }
 

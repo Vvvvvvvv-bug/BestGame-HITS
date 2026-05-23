@@ -18,7 +18,7 @@ export class MusicChoiceModal {
     const cx = scene.scale.width / 2;
     const cy = scene.scale.height / 2;
 
-    // backdrop
+    
     const backdrop = scene.add
       .rectangle(cx, cy, scene.scale.width, scene.scale.height, 0x05080f, 0.72)
       .setDepth(MODAL_DEPTH)
@@ -26,7 +26,7 @@ export class MusicChoiceModal {
     backdrop.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, e: Phaser.Types.Input.EventData) => e.stopPropagation());
     this.track(backdrop);
 
-    // panel
+    
     this.track(
       scene.add
         .rectangle(cx, cy, PANEL_W, PANEL_H, 0x0f1a2c, 0.98)
@@ -34,7 +34,7 @@ export class MusicChoiceModal {
         .setDepth(MODAL_DEPTH + 1)
     );
 
-    // title
+    
     this.track(
       scene.add
         .text(cx, cy - PANEL_H / 2 + 44, 'ВЫБЕРИТЕ МУЗЫКУ', {
@@ -47,7 +47,7 @@ export class MusicChoiceModal {
         .setDepth(MODAL_DEPTH + 2)
     );
 
-    // subtitle
+    
     this.track(
       scene.add
         .text(cx, cy - PANEL_H / 2 + 82, 'Армагеддон — звуковое сопровождение', {

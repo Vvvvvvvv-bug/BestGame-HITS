@@ -18,7 +18,7 @@ export class Player implements Attackable {
     this.sprite = scene.add.sprite(x, y, 'base');
     this.sprite.setOrigin(0.5, 0.5);
     this.sprite.setDepth(30);
-    this.sprite.setDisplaySize(64, 64); // 2x2 клетки по 32px
+    this.sprite.setDisplaySize(64, 64); 
     this.baseScale = this.sprite.scaleX;
   }
 
@@ -59,7 +59,7 @@ export class Player implements Attackable {
 
     if (target) {
       const isDead = target.takeDamage(this.weapon.stats.damage);
-      // Визуальный эффект атаки
+      
       this.scene.tweens.add({
         targets: this.sprite,
         scaleX: this.baseScale * 1.4,

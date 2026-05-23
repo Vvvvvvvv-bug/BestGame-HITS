@@ -4,12 +4,12 @@ export interface QuizQuestion {
   topic: QuizTopic;
   question: string;
   options: [string, string, string, string];
-  correct: number; // индекс правильного ответа (0..3)
+  correct: number; 
 }
 
-// Базовый пул вопросов: ООП, функциональное программирование, синтаксис C++.
+
 export const QUIZ_QUESTIONS: QuizQuestion[] = [
-  // ---------- ООП ----------
+  
   {
     topic: 'ООП',
     question: 'Что такое инкапсуляция?',
@@ -61,7 +61,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     correct: 0,
   },
 
-  // ---------- Функциональное программирование ----------
+  
   {
     topic: 'ФП',
     question: 'Чистая функция (pure function) — это функция, которая...',
@@ -118,7 +118,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     correct: 0,
   },
 
-  // ---------- Синтаксис C++ ----------
+  
   {
     topic: 'C++',
     question: 'Как объявить целочисленную константу со значением 5?',

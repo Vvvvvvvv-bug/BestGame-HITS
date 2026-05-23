@@ -85,10 +85,7 @@ export interface CryoBeamSound {
   destroy(): void;
 }
 
-/**
- * Постоянный «бззз» крио-луча: низкая пила + квадрат-гармоника играют непрерывно,
- * громкость гейтится setActive (плавный фейд, без щелчков). Один на турель.
- */
+
 export function createCryoBeam(scene: Phaser.Scene): CryoBeamSound {
   const context = getContext(scene);
   if (!context) {
@@ -99,12 +96,12 @@ export function createCryoBeam(scene: Phaser.Scene): CryoBeamSound {
   const harm = context.createOscillator();
   const filter = context.createBiquadFilter();
   const gain = context.createGain();
-  // Мягкий низкий гул вместо резкой пилы: синус + тихая треугольная гармоника,
-  // через lowpass, чтобы срезать высокие «царапающие» частоты.
+  
+  
   osc.type = 'sine';
   osc.frequency.value = 96;
   harm.type = 'triangle';
-  harm.frequency.value = 144; // лёгкая расстройка для живости, но без резкости
+  harm.frequency.value = 144; 
   filter.type = 'lowpass';
   filter.frequency.value = 380;
   gain.gain.value = 0.0001;
@@ -131,7 +128,7 @@ export function createCryoBeam(scene: Phaser.Scene): CryoBeamSound {
         osc.stop();
         harm.stop();
       } catch {
-        /* уже остановлены */
+        
       }
       gain.disconnect();
     },

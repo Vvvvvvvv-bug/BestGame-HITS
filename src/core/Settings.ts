@@ -1,8 +1,8 @@
 type SettingsListener = (settings: GameSettings) => void;
 
 export interface GameSettings {
-  sfxVolume: number; // 0..1
-  musicVolume: number; // 0..1
+  sfxVolume: number; 
+  musicVolume: number; 
   graphicsQuality: 'low' | 'medium' | 'high';
   difficulty: 'easy' | 'normal' | 'hard';
 }

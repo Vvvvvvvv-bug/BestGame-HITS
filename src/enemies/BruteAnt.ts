@@ -10,9 +10,9 @@ export class BruteAnt extends Enemy {
   private lastAttackAt = -2000;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    // x3 HP from standard ant (100), x2 damage (20 -> 40), x0.7 speed (70 -> 49)
+    
     super(scene, x, y, 'brute_idle_1', 300, 40, 49);
-    this.sprite.setDisplaySize(99, 99); // 1.5x bigger than previous brute size
+    this.sprite.setDisplaySize(99, 99); 
     this.baseScale = this.sprite.scaleX;
   }
 

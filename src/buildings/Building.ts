@@ -2,7 +2,7 @@ import type { Attackable } from '../core/Attackable';
 
 export abstract class Building implements Attackable {
   sprite: Phaser.GameObjects.Sprite;
-  /** Масштаб после setDisplaySize — основа для относительных анимаций (пульс и т.п.). */
+  
   protected baseScale: number;
   gridX: number;
   gridY: number;

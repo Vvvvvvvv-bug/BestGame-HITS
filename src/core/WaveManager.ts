@@ -40,7 +40,7 @@ export class WaveManager {
       this.transitionToNextPhase();
     }
 
-    // РћС‚РїСЂР°РІР»СЏРµРј СЃРѕР±С‹С‚РёРµ РґР»СЏ РѕР±РЅРѕРІР»РµРЅРёСЏ UI
+    
     eventBus.emit('wave-update', {
       phase: this.currentPhase,
       waveNumber: this.currentWave,
@@ -135,7 +135,7 @@ export class WaveManager {
       case 'boss':
       case 'gameover':
       case 'victory':
-        // РРіСЂР° Р·Р°РєРѕРЅС‡РёР»Р°СЃСЊ, РЅРµ РїРµСЂРµС…РѕРґРёРј
+        
         break;
     }
   }

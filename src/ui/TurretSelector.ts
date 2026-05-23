@@ -145,9 +145,9 @@ export class TurretSelector {
       status.setText(`${cost} Fe`);
       status.setColor(this.gameState.resources.iron >= cost ? '#FFD166' : '#ff5c7a');
     });
-    // НЕ дёргаем refreshTreePanel здесь: update() зовётся каждый кадр, а перестройка
-    // уничтожает/пересоздаёт узлы 60 раз/сек -> по ним невозможно кликнуть. Дерево
-    // перестраивается только при открытии и после покупки.
+    
+    
+    
   }
 
   private handleClick(type: TurretType): void {
@@ -191,7 +191,7 @@ export class TurretSelector {
 
     this.treePanel = this.scene.add.container(0, 0, [bg, title]).setDepth(UI_DEPTH + 10);
 
-    this.refreshTreePanel(); // здесь же узлы переносятся на HUD-камеру
+    this.refreshTreePanel(); 
   }
 
   private refreshTreePanel(): void {
@@ -214,7 +214,7 @@ export class TurretSelector {
 
     for (const branch of branches) {
       this.addBranchLabel(startX, cy, branch.label);
-      cy += 28; // зазор лейбл→узел: узел высотой 36 (±18) иначе налезает на заголовок
+      cy += 28; 
       for (const upgrade of branch.upgrades) {
         this.addUpgradeNode(startX, cy, upgrade);
         cy += rowH;
@@ -230,8 +230,8 @@ export class TurretSelector {
     cy += rowH;
     this.addUnlockNode(startX, cy, 'Cryo', this.gameState.getFreezeTurretUnlockCost(), this.gameState.freezeTurretUnlocked, () => this.gameState.unlockFreezeTurret());
 
-    // Узлы создаются в рантайме => onObjectAdded шлёт их на скроллящуюся мировую камеру
-    // (узлы «разъезжаются» от панели). Переносим всё окно на HUD-камеру — прибито к экрану.
+    
+    
     (this.scene as MainScene).assignToHud(this.treePanel);
   }
 

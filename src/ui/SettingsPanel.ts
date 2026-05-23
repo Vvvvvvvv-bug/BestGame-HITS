@@ -10,17 +10,17 @@ export class SettingsPanel {
   private readonly objects: Phaser.GameObjects.GameObject[] = [];
   private readonly onClose: () => void;
 
-  // slider refs
+  
   private sfxFill!: Phaser.GameObjects.Rectangle;
   private sfxKnob!: Phaser.GameObjects.Ellipse;
   private musicFill!: Phaser.GameObjects.Rectangle;
   private musicKnob!: Phaser.GameObjects.Ellipse;
 
-  // difficulty squares
+  
   private difficultyBgs: Phaser.GameObjects.Rectangle[] = [];
   private difficultyLabels: Phaser.GameObjects.Text[] = [];
 
-  // percent labels
+  
   private sfxPercentText!: Phaser.GameObjects.Text;
   private musicPercentText!: Phaser.GameObjects.Text;
 
@@ -33,7 +33,7 @@ export class SettingsPanel {
     const cx = scene.scale.width / 2;
     const cy = scene.scale.height / 2;
 
-    // backdrop
+    
     const backdrop = scene.add
       .rectangle(cx, cy, scene.scale.width, scene.scale.height, 0x05080f, 0.72)
       .setDepth(MODAL_DEPTH)
@@ -41,7 +41,7 @@ export class SettingsPanel {
     backdrop.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, e: Phaser.Types.Input.EventData) => e.stopPropagation());
     this.track(backdrop);
 
-    // panel
+    
     this.track(
       scene.add
         .rectangle(cx, cy, PANEL_W, PANEL_H, 0x0f1a2c, 0.98)
@@ -49,7 +49,7 @@ export class SettingsPanel {
         .setDepth(MODAL_DEPTH + 1)
     );
 
-    // inner border
+    
     this.track(
       scene.add
         .rectangle(cx, cy, PANEL_W - 16, PANEL_H - 16, 0x0c1626, 0.9)
@@ -57,7 +57,7 @@ export class SettingsPanel {
         .setDepth(MODAL_DEPTH + 1)
     );
 
-    // title
+    
     this.track(
       scene.add
         .text(cx, cy - PANEL_H / 2 + 32, 'НАСТРОЙКИ', {
@@ -70,16 +70,16 @@ export class SettingsPanel {
         .setDepth(MODAL_DEPTH + 2)
     );
 
-    // SFX slider
+    
     this.buildSlider(cx, cy - 60, 'Громкость звуков', (v) => settings.setSfxVolume(v), 'sfx');
 
-    // Music slider
+    
     this.buildSlider(cx, cy - 6, 'Громкость музыки', (v) => settings.setMusicVolume(v), 'music');
 
-    // Difficulty squares
+    
     this.buildDifficultySelector(cx, cy + 52);
 
-    // Close button
+    
     this.buildCloseButton(cx, cy + PANEL_H / 2 - 28);
 
     this.unsubscribe = settings.subscribe((s) => this.syncFromSettings(s));
@@ -97,7 +97,7 @@ export class SettingsPanel {
     const height = 8;
     const knobRadius = 10;
 
-    // label
+    
     this.track(
       this.scene.add
         .text(cx, cy - 20, label, {
@@ -109,7 +109,7 @@ export class SettingsPanel {
         .setDepth(MODAL_DEPTH + 2)
     );
 
-    // track bg
+    
     const trackBg = this.scene.add
       .rectangle(cx, cy, width, height, 0x1b2a3f, 1)
       .setStrokeStyle(1, UI_COLORS.borderMuted)
@@ -117,14 +117,14 @@ export class SettingsPanel {
       .setInteractive();
     this.track(trackBg);
 
-    // fill
+    
     const fill = this.scene.add
       .rectangle(cx - width / 2, cy, width, height, 0x2dc7ff, 1)
       .setOrigin(0, 0.5)
       .setDepth(MODAL_DEPTH + 3);
     this.track(fill);
 
-    // knob
+    
     const knob = this.scene.add
       .ellipse(cx + width / 2, cy, knobRadius * 2, knobRadius * 2, 0xd9fbff, 1)
       .setStrokeStyle(2, 0x2dc7ff)
@@ -160,7 +160,7 @@ export class SettingsPanel {
       updateValue(pointer.x);
     });
 
-    // percent text
+    
     const percentText = this.scene.add
       .text(cx + width / 2 + 18, cy, '100%', {
         ...TEXT_STYLE,
@@ -208,7 +208,7 @@ export class SettingsPanel {
     options.forEach((opt, i) => {
       const bx = startX + i * (size + gap);
 
-      // colored square
+      
       const bg = this.scene.add
         .rectangle(bx, cy + 10, size, size, opt.color, 0.9)
         .setStrokeStyle(2, 0xffffff, 0.35)
@@ -216,7 +216,7 @@ export class SettingsPanel {
         .setInteractive({ useHandCursor: true });
       this.track(bg);
 
-      // label below
+      
       const txt = this.scene.add
         .text(bx, cy + 40, opt.label, {
           ...TEXT_STYLE,
@@ -280,7 +280,7 @@ export class SettingsPanel {
   }
 
   private syncFromSettings(s: GameSettings): void {
-    // sfx slider
+    
     if (this.sfxKnob && this.sfxFill) {
       const width = 300;
       const cx = this.scene.scale.width / 2;
@@ -289,7 +289,7 @@ export class SettingsPanel {
       this.sfxFill.width = width * s.sfxVolume;
       this.sfxPercentText?.setText(`${Math.round(s.sfxVolume * 100)}%`);
     }
-    // music slider
+    
     if (this.musicKnob && this.musicFill) {
       const width = 300;
       const cx = this.scene.scale.width / 2;
@@ -298,7 +298,7 @@ export class SettingsPanel {
       this.musicFill.width = width * s.musicVolume;
       this.musicPercentText?.setText(`${Math.round(s.musicVolume * 100)}%`);
     }
-    // difficulty highlight
+    
     const difficulties: GameSettings['difficulty'][] = ['easy', 'normal', 'hard'];
     const colors = [0x6ee7b7, 0xfcd34d, 0xe11d48];
     for (let i = 0; i < this.difficultyBgs.length; i++) {

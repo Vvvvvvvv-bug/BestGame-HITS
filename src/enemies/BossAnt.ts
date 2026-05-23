@@ -10,8 +10,8 @@ export class BossAnt extends Enemy {
   private lastAttackAt = -2000;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    // Обычный муравей: HP 100, dmg 20, speed 70
-    // Босс: x10 HP, x4 dmg, speed -50%, size x5
+    
+    
     super(scene, x, y, 'boss_idle_1', 1000, 80, 35);
     this.sprite.setDisplaySize(220, 220);
     this.baseScale = this.sprite.scaleX;
